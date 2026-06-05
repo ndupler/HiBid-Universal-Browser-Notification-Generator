@@ -37,9 +37,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
 .upload-area{border:1.5px dashed var(--border2);border-radius:8px;padding:36px 14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;transition:all .2s;background:var(--surface2);position:relative;min-height:120px;}
 .upload-area:hover,.upload-area.dragover{border-color:var(--accent);background:var(--accent-glow);}
 .upload-area input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
-.upload-icon{font-size:22px;color:var(--accent-dim);}
 .upload-title{font-size:13px;font-weight:900;color:#fff;text-align:center;width:50%;line-height:1.3;letter-spacing:.5px;}
-.upload-sub{font-size:9px;color:var(--text-dim);}
 .loaded-bar{display:flex;align-items:center;justify-content:space-between;background:rgba(46,204,113,.07);border:1px solid rgba(46,204,113,.3);border-radius:8px;padding:9px 12px;}
 .linfo{display:flex;align-items:center;gap:9px;}
 .lcheck{color:var(--green);font-size:15px;}
@@ -150,15 +148,11 @@ input.hex-inp:focus{border-color:var(--accent);}
       <div class="card-hdr"><div class="card-title"><span class="card-num">1</span>Template &amp; Auctioneer Logo</div></div>
       <div class="card-body" style="display:flex;flex-direction:column;gap:12px;">
         <div id="tmplArea" class="upload-area">
-          <div class="upload-icon">↑</div>
-          <div class="upload-title">Click or drag to upload template</div>
-          <div class="upload-sub">PNG recommended · used as the banner layout</div>
+          <div class="upload-title">DROP OR UPLOAD TEMPLATE HERE</div>
           <input type="file" id="tmplFile" accept="image/png,image/jpeg">
         </div>
         <div id="logoArea" class="upload-area">
-          <div class="upload-icon">↑</div>
-          <div class="upload-title">Click or drag to upload logo</div>
-          <div class="upload-sub">PNG recommended · filename becomes auctioneer name</div>
+          <div class="upload-title">DROP OR UPLOAD AUCTIONEER LOGO HERE</div>
           <input type="file" id="logoFile" accept="image/png,image/jpeg,image/gif,image/webp">
         </div>
         <div id="palSection" style="display:none;" class="pal-section">
@@ -177,6 +171,7 @@ input.hex-inp:focus{border-color:var(--accent);}
         </div>
       </div>
     </div>
+
     <div class="card">
       <div class="card-hdr"><div class="card-title"><span class="card-num">2</span>Auction Details</div></div>
       <div class="card-body" style="display:flex;flex-direction:column;gap:12px;height:100%;">
@@ -221,7 +216,7 @@ input.hex-inp:focus{border-color:var(--accent);}
       </div>
     </div>
     <div class="preview-wrap">
-      <div id="previewPlaceholder" class="preview-placeholder">Upload a template PNG and logo to preview</div>
+      <div id="previewPlaceholder" class="preview-placeholder">Upload a logo to preview</div>
       <canvas id="previewCanvas" style="display:none;"></canvas>
     </div>
     <div class="export-row">
@@ -331,22 +326,24 @@ input.hex-inp:focus{border-color:var(--accent);}
 (function () {
 'use strict';
 
-// ── Canvas layout (1000x500) ──
-var LOGO_X=0, LOGO_Y=0, LOGO_W=190, LOGO_H=120;
-var TITLE_X=190, TITLE_Y=0, TITLE_W=520, TITLE_H=120;
-var DATE_X=710, DATE_Y=0, DATE_W=290, DATE_H=120;
-var PHOTO_X=0, PHOTO_Y=120, PHOTO_W=1000, PHOTO_H=330;
-var GOLD_X=0, GOLD_Y=450, GOLD_W=710, GOLD_H=50;
-var BTN_X=710, BTN_Y=450, BTN_W=290, BTN_H=50;
-var CW=1000, CH=500, MIN_GAP=4, MAX_GAP=20;
+// ── Zone constants (1000x500 canvas) ──
+var LOGO_X=16,  LOGO_Y=19,  LOGO_W=262, LOGO_H=103;
+var TITLE_X=294,TITLE_Y=19, TITLE_W=427,TITLE_H=103;
+var DATE_X=732, DATE_Y=18,  DATE_W=252, DATE_H=122;
+var AE_Y=18,    AE_H=36;
+var DATED_Y=65, DATED_H=57;
+var PHOTO_X=16, PHOTO_Y=132,PHOTO_W=968,PHOTO_H=268;
+var GOLD_X=16,  GOLD_Y=410, GOLD_W=716, GOLD_H=79;
+var BTN_X=744,  BTN_Y=410,  BTN_W=240,  BTN_H=79;
+var CW=1000,CH=500,MIN_GAP=4,MAX_GAP=20;
 var PRESET_PREFIX='hibid:notify:';
 
 // ── State ──
-var templateImg=null, logoImg=null;
+var templateImg=null,logoImg=null;
 var photoImgs=[null,null,null,null];
 var photoTransparent=[false,false,false,false];
-var logoPalette=[], brandOverride=null, currentPresetName=null;
-var gradDir=true, photoBorderOn=true;
+var logoPalette=[],brandOverride=null,currentPresetName=null;
+var gradDir=true,photoBorderOn=true;
 
 var GRADIENTS=[
   ['#FF0000','#DC143C','#800000','#4A0000'],['#FFA500','#CC5500','#A0522D','#6B3A2A'],
@@ -434,9 +431,9 @@ function bindColorPair(colorId,hexId){
 }
 
 // ── Upload helpers ──
-function makeUploadArea(el,title,sub,accept,onFile){
+function makeUploadArea(el,title,accept,onFile){
   el.className='upload-area';
-  el.innerHTML='<div class="upload-title">'+title+'</div>'+(sub?'<div class="upload-sub">'+sub+'</div>':'');
+  el.innerHTML='<div class="upload-title">'+title+'</div>';
   var inp=document.createElement('input');inp.type='file';inp.accept=accept;
   inp.style.cssText='position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;';
   inp.addEventListener('change',function(){if(this.files[0])onFile(this.files[0]);});
@@ -617,95 +614,108 @@ function makeGrad(ctx,gColors,W){
 }
 
 function drawBanner(canvas){
-  if(!templateImg||!logoImg)return false;
+  if(!logoImg)return false;
   canvas.width=CW;canvas.height=CH;
   var ctx=canvas.getContext('2d');
 
-  // Gradient
   var gColors=matchGradient(getActivePalette()[0]);
   if(!gradDir)gColors=gColors.slice().reverse();
   var gFill=makeGrad(ctx,gColors,CW);
 
-  // 1. Fill background
-  ctx.fillStyle=gFill;ctx.fillRect(0,0,CW,CH);
-
-  // 2. Draw template with zones cleared
-  var off=document.createElement('canvas');off.width=CW;off.height=CH;
-  var offCtx=off.getContext('2d');offCtx.drawImage(templateImg,0,0,CW,CH);
-  [[LOGO_X,LOGO_Y,LOGO_W,LOGO_H],[TITLE_X,TITLE_Y,TITLE_W,TITLE_H],
-   [DATE_X,DATE_Y,DATE_W,DATE_H],[PHOTO_X,PHOTO_Y,PHOTO_W,PHOTO_H],
-   [GOLD_X,GOLD_Y,GOLD_W,GOLD_H],[BTN_X,BTN_Y,BTN_W,BTN_H]
-  ].forEach(function(z){offCtx.clearRect(z[0],z[1],z[2],z[3]);});
-  ctx.drawImage(off,0,0);
-
-  // 3. Repaint zones with gradient
+  // 1. Fill entire canvas with gradient
   ctx.fillStyle=gFill;
-  [[LOGO_X,LOGO_Y,LOGO_W,LOGO_H],[TITLE_X,TITLE_Y,TITLE_W,TITLE_H],
-   [DATE_X,DATE_Y,DATE_W,DATE_H],[PHOTO_X,PHOTO_Y,PHOTO_W,PHOTO_H]
-  ].forEach(function(z){ctx.fillRect(z[0],z[1],z[2],z[3]);});
+  ctx.fillRect(0,0,CW,CH);
 
-  // 4. Logo (clipped to logo zone only)
+  // 3. Logo — track actual right edge for title centering
   var ls=Math.min((LOGO_W-8)/logoImg.width,(LOGO_H-8)/logoImg.height);
   var lw=logoImg.width*ls,lh=logoImg.height*ls;
+  var logoDrawRight=LOGO_X+4+lw; // actual right edge of rendered logo
   ctx.save();
   ctx.beginPath();ctx.rect(LOGO_X,LOGO_Y,LOGO_W,LOGO_H);ctx.clip();
   ctx.drawImage(logoImg,LOGO_X+4,LOGO_Y+Math.floor((LOGO_H-lh)/2),lw,lh);
   ctx.restore();
 
-  // 5. Date zone
-  ctx.fillStyle=gFill;ctx.fillRect(DATE_X,DATE_Y,DATE_W,DATE_H);
+  // 4. Date zone
   var dateColor=cv('col-dateText');
-  var labelFs=Math.floor(DATE_H*0.28);
-  ctx.font='bold '+labelFs+'px Candara,Calibri,serif';
+  // "AUCTION ENDS" — shrink to fill full zone width
+  var labelFs=Math.floor(AE_H*0.85);
+  do{ctx.font='bold '+labelFs+'px Candara,Calibri,serif';labelFs--;}
+  while(ctx.measureText('AUCTION ENDS').width>DATE_W-4&&labelFs>6);
   ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.fillStyle=dateColor;
-  ctx.fillText('AUCTION ENDS',DATE_X+DATE_W/2,DATE_Y+DATE_H*0.3);
+  ctx.fillText('AUCTION ENDS',DATE_X+DATE_W/2,AE_Y+AE_H/2);
   var aeWidth=ctx.measureText('AUCTION ENDS').width;
   var dateVal=document.getElementById('auctionEndDate').value.trim();
   if(dateVal){
-    var dfs=Math.floor(DATE_H*0.38);
+    var dfs=Math.floor(DATED_H*0.7);
     do{ctx.font='bold '+dfs+'px Candara,Calibri,serif';dfs--;}
     while(ctx.measureText(dateVal).width>aeWidth+4&&dfs>6);
     ctx.fillStyle=dateColor;
-    ctx.fillText(dateVal,DATE_X+DATE_W/2,DATE_Y+DATE_H*0.68);
+    ctx.fillText(dateVal,DATE_X+DATE_W/2,DATED_Y+DATED_H/2);
   }
 
-  // 6. Auction title — drawn AFTER logo, no clipping, centered in title zone
+  // 5. Auction title
   var titleText=document.getElementById('auctionTitle').value.trim();
   if(titleText){
-    // Title zone spans TITLE_X to DATE_X (190 to 710 = 520px wide)
-    var titleZoneLeft=TITLE_X;
-    var titleZoneRight=DATE_X;
-    var titleZoneW=titleZoneRight-titleZoneLeft;
-    var tfs=TITLE_H-8;
-    do{tfs--;ctx.font='bold italic '+tfs+'px Candara,Calibri,serif';}
-    while(ctx.measureText(titleText).width>titleZoneW-20&&tfs>6);
-    // Center using textAlign center within the title zone
+    var titleLeft=logoDrawRight+30;
+    var titleRight=DATE_X;
+    var titleZoneW=titleRight-titleLeft;
+    var maxTitleW=titleZoneW-16;
+    var titleCX=titleLeft+titleZoneW/2;
+
+
     ctx.fillStyle=cv('col-auctionText');
     ctx.textAlign='center';
     ctx.textBaseline='middle';
-    ctx.fillText(titleText,titleZoneLeft+titleZoneW/2+7,TITLE_Y+TITLE_H/2);
+
+    var useTwoLines=titleText.length>20;
+
+    if(useTwoLines){
+      // Split at nearest word boundary to the middle
+      var words=titleText.split(' ');
+      var mid=Math.ceil(words.length/2);
+      var line1=words.slice(0,mid).join(' ');
+      var line2=words.slice(mid).join(' ');
+      // If only one word, just use it on one line
+      if(words.length===1){
+        var tfs=TITLE_H-8;
+        do{tfs--;ctx.font='bold italic '+tfs+'px Candara,Calibri,serif';}
+        while(ctx.measureText(titleText).width>maxTitleW&&tfs>6);
+        ctx.fillText(titleText,titleCX,TITLE_Y+TITLE_H/2);
+      } else {
+        var tfs2=TITLE_H/2-4;
+        do{tfs2--;ctx.font='bold italic '+tfs2+'px Candara,Calibri,serif';}
+        while((ctx.measureText(line1).width>maxTitleW||ctx.measureText(line2).width>maxTitleW)&&tfs2>6);
+        ctx.fillText(line1,titleCX,TITLE_Y+TITLE_H*0.3);
+        ctx.fillText(line2,titleCX,TITLE_Y+TITLE_H*0.72);
+      }
+    } else {
+      var tfs=TITLE_H-8;
+      do{tfs--;ctx.font='bold italic '+tfs+'px Candara,Calibri,serif';}
+      while(ctx.measureText(titleText).width>maxTitleW&&tfs>6);
+      ctx.fillText(titleText,titleCX,TITLE_Y+TITLE_H/2);
+    }
   }
 
-  // 7. Photos
-  var px=PHOTO_X+4,py=PHOTO_Y,pw=PHOTO_W-8,ph=PHOTO_H;
+  // 6. Photos
   var filled=[];for(var pi=0;pi<4;pi++){if(photoImgs[pi])filled.push(pi);}
   if(filled.length){
     var n=filled.length;
-    var natW=filled.map(function(i){return(photoImgs[i].width/photoImgs[i].height)*ph;});
+    var natW=filled.map(function(i){return(photoImgs[i].width/photoImgs[i].height)*PHOTO_H;});
     var totalNat=natW.reduce(function(a,b){return a+b;},0);
-    var maxW=pw-MIN_GAP*(n-1);
+    var maxW=PHOTO_W-MIN_GAP*(n-1);
     var sc=totalNat>maxW?maxW/totalNat:1;
     var drawW=natW.map(function(w){return w*sc;});
     var totalW=drawW.reduce(function(a,b){return a+b;},0);
-    var gap=Math.min(MAX_GAP,Math.max(MIN_GAP,n>1?(pw-totalW)/(n-1):0));
-    var curX=px+Math.floor((pw-(totalW+gap*(n-1)))/2);
-    ctx.save();ctx.beginPath();ctx.rect(px,py,pw,ph);ctx.clip();
+    var gap=Math.min(MAX_GAP,Math.max(MIN_GAP,n>1?(PHOTO_W-totalW)/(n-1):0));
+    var curX=PHOTO_X+Math.floor((PHOTO_W-(totalW+gap*(n-1)))/2);
+    ctx.save();ctx.beginPath();ctx.rect(PHOTO_X,PHOTO_Y,PHOTO_W,PHOTO_H);ctx.clip();
     for(var fi=0;fi<n;fi++){
       var idx=filled[fi],photo=photoImgs[idx],isTransp=photoTransparent[idx];
       var dW=drawW[fi],dH,dY;
-      if(isTransp){dH=dW/(photo.width/photo.height);if(dH>ph){dH=ph;dW=dH*(photo.width/photo.height);}dY=py+Math.floor((ph-dH)/2);}
-      else{dH=dW/(photo.width/photo.height);if(dH>ph){dH=ph;dW=dH*(photo.width/photo.height);}dY=py+Math.floor((ph-dH)/2);}
+      dH=dW/(photo.width/photo.height);
+      if(dH>PHOTO_H){dH=PHOTO_H;dW=dH*(photo.width/photo.height);}
+      dY=PHOTO_Y+Math.floor((PHOTO_H-dH)/2);
       ctx.drawImage(photo,curX,dY,dW,dH);
       if(!isTransp&&photoBorderOn){ctx.strokeStyle=cv('col-photoBorder');ctx.lineWidth=1;ctx.strokeRect(curX,dY,dW,dH);}
       curX+=dW+gap;
@@ -713,16 +723,18 @@ function drawBanner(canvas){
     ctx.restore();
   }
 
-  // 8. CTA bar
+  // 7. CTA bar
   ctx.fillStyle=cv('col-goldBg');ctx.fillRect(GOLD_X,GOLD_Y,GOLD_W,GOLD_H);
   ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.font='bold '+(GOLD_H-8)+'px Candara,Calibri,serif';
+  var ctaFs=GOLD_H-12;
+  do{ctaFs--;ctx.font='bold '+ctaFs+'px Candara,Calibri,serif';}
+  while(ctx.measureText('BIDDING STARTS CLOSING SOON!').width>GOLD_W-16&&ctaFs>6);
   ctx.fillStyle=cv('col-closingText');
   ctx.fillText('BIDDING STARTS CLOSING SOON!',GOLD_X+GOLD_W/2,GOLD_Y+GOLD_H/2+3);
 
-  // 9. Bid Now
+  // 8. Bid Now
   ctx.fillStyle=cv('col-btnBg');ctx.fillRect(BTN_X,BTN_Y,BTN_W,BTN_H);
-  var bfs=BTN_H-8;ctx.textAlign='center';ctx.textBaseline='middle';
+  var bfs=BTN_H-12;ctx.textAlign='center';ctx.textBaseline='middle';
   do{bfs--;ctx.font='bold '+bfs+'px Candara,Calibri,serif';}
   while((ctx.measureText('BID NOW').width>BTN_W-8||bfs>BTN_H-8)&&bfs>6);
   ctx.fillStyle=cv('col-btnText');
@@ -732,16 +744,19 @@ function drawBanner(canvas){
 }
 
 function renderPreview(){
-  if(!templateImg){setStatus('No template loaded.',false);return;}
   if(!logoImg){setStatus('No logo loaded.',false);return;}
   try{
     var canvas=document.getElementById('previewCanvas');
-    if(drawBanner(canvas)){canvas.style.display='block';document.getElementById('previewPlaceholder').style.display='none';setStatus('Preview ready.',true);}
+    if(drawBanner(canvas)){
+      canvas.style.display='block';
+      document.getElementById('previewPlaceholder').style.display='none';
+      setStatus('Preview ready.',true);
+    }
   }catch(err){setStatus('Render error: '+err.message,false);console.error(err);}
 }
 
 function exportBanner(){
-  if(!templateImg||!logoImg){setStatus('Upload logo and template first.',false);return;}
+  if(!logoImg){setStatus('Upload logo first.',false);return;}
   var baseName=document.getElementById('fileName').value.trim()||'notification';
   try{
     var full=document.getElementById('exportCanvas');if(!drawBanner(full))return;
@@ -756,8 +771,8 @@ function exportBanner(){
 function resetAll(){
   templateImg=null;logoImg=null;photoImgs=[null,null,null,null];photoTransparent=[false,false,false,false];
   logoPalette=[];brandOverride=null;currentPresetName=null;gradDir=true;photoBorderOn=true;
-  makeUploadArea(document.getElementById('tmplArea'),'DROP OR UPLOAD TEMPLATE HERE','','image/png,image/jpeg',onTmplFile);
-  makeUploadArea(document.getElementById('logoArea'),'DROP OR UPLOAD AUCTIONEER LOGO HERE','','image/png,image/jpeg,image/gif,image/webp',onLogoFile);
+  makeUploadArea(document.getElementById('tmplArea'),'DROP OR UPLOAD TEMPLATE HERE','image/png,image/jpeg',onTmplFile);
+  makeUploadArea(document.getElementById('logoArea'),'DROP OR UPLOAD AUCTIONEER LOGO HERE','image/png,image/jpeg,image/gif,image/webp',onLogoFile);
   document.getElementById('palSection').style.display='none';
   document.getElementById('overrideNote').classList.remove('visible');
   document.getElementById('auctioneerLabel').textContent='No auctioneer loaded';
@@ -778,8 +793,8 @@ function resetAll(){
 }
 
 function init(){
-  makeUploadArea(document.getElementById('tmplArea'),'DROP OR UPLOAD TEMPLATE HERE','','image/png,image/jpeg',onTmplFile);
-  makeUploadArea(document.getElementById('logoArea'),'DROP OR UPLOAD AUCTIONEER LOGO HERE','','image/png,image/jpeg,image/gif,image/webp',onLogoFile);
+  makeUploadArea(document.getElementById('tmplArea'),'DROP OR UPLOAD TEMPLATE HERE','image/png,image/jpeg',onTmplFile);
+  makeUploadArea(document.getElementById('logoArea'),'DROP OR UPLOAD AUCTIONEER LOGO HERE','image/png,image/jpeg,image/gif,image/webp',onLogoFile);
   buildPhotoSlots();
 
   var picker=document.getElementById('brandPicker'),hexInp=document.getElementById('brandHex');
@@ -819,7 +834,7 @@ function init(){
   });
 
   renderPresetList();
-  setStatus('Upload a template PNG and logo to get started.',true);
+  setStatus('Upload an auctioneer logo to get started.',true);
 }
 
 document.addEventListener('DOMContentLoaded',init);
