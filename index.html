@@ -716,7 +716,7 @@ function drawBanner(canvas){
     do{ctx.font='bold '+dfs+'px Candara,Calibri,serif';dfs--;}
     while(ctx.measureText(dateVal).width>aeWidth+4&&dfs>6);
     ctx.fillStyle=dateColor;
-    ctx.fillText(dateVal,DATE_X+DATE_W/2,DATED_Y+DATED_H/2);
+    ctx.fillText(dateVal,DATE_X+DATE_W/2,DATED_Y+DATED_H/2-4);
   }
 
   // Auction title
