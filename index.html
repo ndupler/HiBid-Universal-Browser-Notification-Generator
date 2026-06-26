@@ -81,6 +81,8 @@ input.hex-inp:focus{border-color:var(--accent);}
 .field input[type=text]:focus{border-color:var(--accent);}
 .photos-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
 .slot-wrap{display:flex;flex-direction:column;gap:5px;}
+.slot-label-input{padding:5px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--surface2);color:var(--text-dim);font-size:10px;outline:none;width:100%;}
+.slot-label-input:focus{border-color:var(--accent);color:var(--text);}
 .drop-zone{width:100%;height:80px;border:1.5px dashed var(--border2);border-radius:7px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;overflow:hidden;transition:all .2s;background:var(--surface2);gap:2px;}
 .drop-zone:hover,.drop-zone.dragover{border-color:var(--accent);background:var(--accent-glow);}
 .drop-zone.filled{border-color:rgba(39,201,122,.5);border-style:solid;}
@@ -191,7 +193,6 @@ canvas{border-radius:5px;display:block;max-width:100%;height:auto;}
             <div class="upload-sub">PNG recommended · filename = auctioneer name</div>
             <input type="file" accept="image/png,image/jpeg,image/gif,image/webp">
           </div>
-          <!-- Presets -->
           <div class="preset-block">
             <div class="preset-block-title">Saved Auctioneer Presets &nbsp;<span id="presetCount"></span></div>
             <div class="preset-bar">
@@ -201,7 +202,6 @@ canvas{border-radius:5px;display:block;max-width:100%;height:auto;}
             </div>
             <div class="preset-list" id="presetList"></div>
           </div>
-          <!-- Palette & override -->
           <div id="palSection" style="display:none;">
             <div class="pal-block">
               <div class="pal-label">Matched Gradient</div>
@@ -488,7 +488,6 @@ function loadImageFile(file,cb){
   r.readAsDataURL(file);
 }
 
-// ── Undo ──
 function captureState(){
   return{
     gradDir:gradDir,photoBorderOn:photoBorderOn,forceTwoLines:forceTwoLines,
@@ -513,7 +512,6 @@ function doUndo(){
   setStatus('Undone.',true);
 }
 
-// ── Badges ──
 function updateBadges(){
   var b1=document.getElementById('badge1');
   var b2=document.getElementById('badge2');
@@ -537,7 +535,6 @@ function openStep(n){
   }
 }
 
-// ── Storage ──
 function lsSet(k,v){try{localStorage.setItem(k,v);return true;}catch(e){return false;}}
 function lsGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
 function lsDel(k){try{localStorage.removeItem(k);}catch(e){}}
@@ -547,7 +544,6 @@ async function storageGet(k){var v=lsGet(k);if(v!==null)return v;try{var r=await
 async function storageDel(k){lsDel(k);try{await window.storage.delete(k);}catch(e){}}
 async function storageKeys(pfx){var keys=lsKeys(pfx);try{var r=await window.storage.list(pfx);if(r&&r.keys)r.keys.forEach(function(k){if(keys.indexOf(k)<0)keys.push(k);});}catch(e){}return keys;}
 
-// ── Palette ──
 function updatePaletteSwatches(rgb){
   var matched=matchGradient(rgb),row=document.getElementById('palRow');
   row.innerHTML='';
@@ -563,7 +559,6 @@ function bindColorPair(colorId,hexId){
   hi.addEventListener('input',function(){var v=hi.value.trim();if(v.charAt(0)!=='#')v='#'+v;if(/^#[0-9A-Fa-f]{6}$/.test(v)){cp.value=v;showUndo('Color changed');renderPreview();}});
 }
 
-// ── Upload helpers ──
 function makeUploadArea(el,icon,title,sub,accept,onFile){
   el.className='upload-area';
   el.innerHTML='<div class="upload-icon">'+icon+'</div><div class="upload-title">'+title+'</div><div class="upload-sub">'+sub+'</div>';
@@ -625,11 +620,12 @@ function onLogoFile(file){
   });
 }
 
-// ── Photo slots ──
 function buildPhotoSlots(){
   var grid=document.getElementById('photosGrid');grid.innerHTML='';
+  var defaultLabels=['Main Lot','Detail Shot','Lot 3','Lot 4'];
   for(var i=0;i<4;i++){(function(idx){
     var wrap=document.createElement('div');wrap.className='slot-wrap';
+    var labelInp=document.createElement('input');labelInp.className='slot-label-input';labelInp.placeholder=defaultLabels[idx];
     var zone=document.createElement('div');zone.className='drop-zone';zone.id='zone'+idx;
     var icon=document.createElement('span');icon.className='dz-icon';icon.textContent='+';
     var lbl=document.createElement('span');lbl.className='dz-lbl';lbl.textContent='Photo '+(idx+1);
@@ -645,7 +641,7 @@ function buildPhotoSlots(){
     zone.addEventListener('drop',function(e){e.preventDefault();zone.classList.remove('dragover');if(e.dataTransfer.files[0])handlePhoto(e.dataTransfer.files[0],idx);});
     var transBtn=document.createElement('button');transBtn.className='trans-btn';transBtn.id='transTog'+idx;transBtn.textContent='BG';
     transBtn.addEventListener('click',function(){toggleTransparent(idx);});
-    wrap.appendChild(zone);wrap.appendChild(transBtn);grid.appendChild(wrap);
+    wrap.appendChild(labelInp);wrap.appendChild(zone);wrap.appendChild(transBtn);grid.appendChild(wrap);
   })(i);}
 }
 function handlePhoto(file,idx){
@@ -677,7 +673,6 @@ function toggleTransparent(idx){
   renderPreview();
 }
 
-// ── Settings / Presets ──
 function getCurrentSettings(){
   return{gradDir:gradDir,photoBorderOn:photoBorderOn,forceTwoLines:forceTwoLines,
     brandOverrideHex:brandOverride?rgbToHex(brandOverride):null,
@@ -757,7 +752,6 @@ async function renderPresetList(){
   });
 }
 
-// ── Drawing ──
 function makeGrad(ctx,gColors,W){
   var g=ctx.createLinearGradient(0,0,W,0);
   for(var i=0;i<gColors.length;i++){var c=gColors[i];g.addColorStop(i/(gColors.length-1),'rgb('+c[0]+','+c[1]+','+c[2]+')');}
@@ -772,7 +766,6 @@ function drawBanner(canvas){
   var gFill=makeGrad(ctx,gColors,CW);
   ctx.fillStyle=gFill;ctx.fillRect(0,0,CW,CH);
 
-  // Logo
   var ls=Math.min((LOGO_W-8)/logoImg.width,(LOGO_H-8)/logoImg.height);
   var lw=logoImg.width*ls,lh=logoImg.height*ls;
   var logoDrawRight=LOGO_X+4+lw;
@@ -780,7 +773,6 @@ function drawBanner(canvas){
   ctx.drawImage(logoImg,LOGO_X+4,LOGO_Y+Math.floor((LOGO_H-lh)/2),lw,lh);
   ctx.restore();
 
-  // Date zone
   var dateColor=cv('col-dateText');
   var labelFs=Math.floor(AE_H*0.85);
   do{ctx.font='bold '+labelFs+'px Candara,Calibri,serif';labelFs--;}
@@ -798,7 +790,6 @@ function drawBanner(canvas){
     ctx.fillText(dateVal,DATE_X+DATE_W/2,DATED_Y+DATED_H/2-4);
   }
 
-  // Auction title
   var titleText=document.getElementById('auctionTitle').value.trim();
   if(titleText){
     var titleLeft=logoDrawRight+30;
@@ -827,7 +818,6 @@ function drawBanner(canvas){
     }
   }
 
-  // Photos
   var filled=[];for(var pi=0;pi<4;pi++){if(photoImgs[pi])filled.push(pi);}
   if(filled.length){
     var n=filled.length;
@@ -853,7 +843,6 @@ function drawBanner(canvas){
     ctx.restore();
   }
 
-  // CTA bar
   ctx.fillStyle=cv('col-goldBg');ctx.fillRect(GOLD_X,GOLD_Y,GOLD_W,GOLD_H);
   var ctaFs=GOLD_H-12;
   do{ctaFs--;ctx.font='bold '+ctaFs+'px Candara,Calibri,serif';}
@@ -862,7 +851,6 @@ function drawBanner(canvas){
   ctx.fillStyle=cv('col-closingText');
   ctx.fillText('BIDDING STARTS CLOSING SOON!',GOLD_X+GOLD_W/2,GOLD_Y+GOLD_H/2+3);
 
-  // Bid Now
   ctx.fillStyle=cv('col-btnBg');ctx.fillRect(BTN_X,BTN_Y,BTN_W,BTN_H);
   var bfs=BTN_H-12;ctx.textAlign='center';ctx.textBaseline='middle';
   do{bfs--;ctx.font='bold '+bfs+'px Candara,Calibri,serif';}
@@ -982,38 +970,25 @@ function init(){
   });
 
   document.getElementById('dirLtr').addEventListener('click',function(){
-    showUndo('Gradient direction changed');
-    gradDir=true;
-    document.getElementById('dirLtr').classList.add('active');
-    document.getElementById('dirRtl').classList.remove('active');
-    renderPreview();
+    showUndo('Gradient direction changed');gradDir=true;
+    document.getElementById('dirLtr').classList.add('active');document.getElementById('dirRtl').classList.remove('active');renderPreview();
   });
   document.getElementById('dirRtl').addEventListener('click',function(){
-    showUndo('Gradient direction changed');
-    gradDir=false;
-    document.getElementById('dirRtl').classList.add('active');
-    document.getElementById('dirLtr').classList.remove('active');
-    renderPreview();
+    showUndo('Gradient direction changed');gradDir=false;
+    document.getElementById('dirRtl').classList.add('active');document.getElementById('dirLtr').classList.remove('active');renderPreview();
   });
 
   document.getElementById('titleOne').addEventListener('click',function(){
-    showUndo('Title lines changed');
-    forceTwoLines=false;
-    document.getElementById('titleOne').classList.add('active');
-    document.getElementById('titleTwo').classList.remove('active');
-    renderPreview();
+    showUndo('Title lines changed');forceTwoLines=false;
+    document.getElementById('titleOne').classList.add('active');document.getElementById('titleTwo').classList.remove('active');renderPreview();
   });
   document.getElementById('titleTwo').addEventListener('click',function(){
-    showUndo('Title lines changed');
-    forceTwoLines=true;
-    document.getElementById('titleTwo').classList.add('active');
-    document.getElementById('titleOne').classList.remove('active');
-    renderPreview();
+    showUndo('Title lines changed');forceTwoLines=true;
+    document.getElementById('titleTwo').classList.add('active');document.getElementById('titleOne').classList.remove('active');renderPreview();
   });
 
   document.getElementById('tog-photoBorder').addEventListener('click',function(){
-    showUndo('Photo border toggled');
-    photoBorderOn=!photoBorderOn;this.classList.toggle('on',photoBorderOn);
+    showUndo('Photo border toggled');photoBorderOn=!photoBorderOn;this.classList.toggle('on',photoBorderOn);
     document.getElementById('tog-photoBorder-lbl').textContent=photoBorderOn?'On':'Off';renderPreview();
   });
 
