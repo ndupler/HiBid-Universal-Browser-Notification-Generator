@@ -16,23 +16,23 @@
 body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;}
 
 /* ── Topbar ── */
-.topbar{background:var(--surface);border-bottom:2px solid var(--border);padding:0 24px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;height:72px;position:sticky;top:0;z-index:100;}
-.topbar-left{display:flex;align-items:center;gap:12px;}
+.topbar{background:var(--surface);border-bottom:2px solid var(--border);padding:0 24px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:24px;height:72px;position:sticky;top:0;z-index:100;}
+.topbar-left{display:flex;align-items:center;gap:12px;flex-shrink:0;}
 .topbar-logo{height:22px;}
 .topbar-div{width:1px;height:26px;background:var(--border2);flex-shrink:0;}
 .topbar-title{font-size:17px;font-weight:900;color:var(--text);white-space:nowrap;}
 .topbar-sub{font-size:10px;color:var(--accent);margin-top:1px;white-space:nowrap;}
 
-/* Progress in center */
-.topbar-progress{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;max-width:420px;justify-self:center;}
+/* Progress — takes all remaining space */
+.topbar-progress{display:flex;flex-direction:column;align-items:stretch;gap:6px;width:100%;}
 .progress-bar-track{height:6px;background:var(--border);border-radius:3px;overflow:hidden;width:100%;}
 .progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:3px;transition:width .4s;}
-.progress-steps{display:flex;justify-content:space-between;width:100%;}
+.progress-steps{display:flex;justify-content:space-between;}
 .progress-step-label{font-size:10px;color:var(--text-faint);font-weight:700;text-transform:uppercase;letter-spacing:.5px;transition:color .3s;}
 .progress-step-label.done{color:var(--green);}
 .progress-step-label.active{color:var(--accent);}
 
-.topbar-right{display:flex;align-items:center;justify-content:flex-end;}
+.topbar-right{display:flex;align-items:center;justify-content:flex-end;flex-shrink:0;}
 .topbar-status{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:24px;padding:5px 14px 5px 9px;}
 .status-dot{width:8px;height:8px;border-radius:50%;background:var(--text-faint);flex-shrink:0;transition:all .3s;}
 .status-dot.green{background:var(--green);box-shadow:0 0 8px rgba(39,201,122,.5);}
@@ -132,17 +132,15 @@ input[type=color].cp{width:34px;height:28px;border:1.5px solid var(--border2);bo
 .trans-overlay.active{background:rgba(79,168,204,.2);border-color:var(--accent);color:var(--accent);}
 .drop-zone.filled .trans-overlay{display:block;}
 
-/* ── Step 4 redesign ── */
+/* ── Step 4 sections ── */
 .s4-section{background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:12px;}
 .s4-section:last-child{margin-bottom:0;}
 .s4-section-hdr{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
 .s4-section-icon{font-size:16px;line-height:1;}
 .s4-section-title{font-size:12px;font-weight:800;color:var(--text);text-transform:uppercase;letter-spacing:.6px;}
-.s4-divider{height:1px;background:var(--border);margin-bottom:12px;}
 .s4-row{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;}
 .s4-ctrl{display:flex;flex-direction:column;gap:5px;}
 .s4-ctrl-label{font-size:10px;color:var(--text-dim);font-weight:600;white-space:nowrap;}
-.s4-full{width:100%;}
 
 /* ── Seg / Toggle ── */
 .seg-toggle{display:flex;border:1.5px solid var(--border2);border-radius:6px;overflow:hidden;}
@@ -194,14 +192,12 @@ canvas{border-radius:5px;display:block;max-width:100%;max-height:100%;width:auto
 .btn-sm-ghost:hover{border-color:var(--accent);color:var(--text);}
 .btn-sm-danger{border:1.5px solid rgba(224,82,82,.35);background:transparent;color:var(--red);}
 .btn-sm-danger:hover{background:rgba(224,82,82,.1);}
-.auto-badge{display:inline-block;background:rgba(39,201,122,.15);color:var(--green);font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;margin-left:6px;}
 .gap10{display:flex;flex-direction:column;gap:10px;}
 </style>
 </head>
 <body>
 
 <div class="topbar">
-  <!-- Left: logo + title -->
   <div class="topbar-left">
     <img src="https://i.imgur.com/o7qWsZ4.png" class="topbar-logo" alt="HiBid">
     <div class="topbar-div"></div>
@@ -211,7 +207,6 @@ canvas{border-radius:5px;display:block;max-width:100%;max-height:100%;width:auto
     </div>
   </div>
 
-  <!-- Center: progress -->
   <div class="topbar-progress">
     <div class="progress-bar-track"><div class="progress-bar-fill" id="progressFill" style="width:0%"></div></div>
     <div class="progress-steps">
@@ -222,7 +217,6 @@ canvas{border-radius:5px;display:block;max-width:100%;max-height:100%;width:auto
     </div>
   </div>
 
-  <!-- Right: status -->
   <div class="topbar-right">
     <div class="topbar-status">
       <div class="status-dot" id="statusDot"></div>
@@ -319,7 +313,7 @@ canvas{border-radius:5px;display:block;max-width:100%;max-height:100%;width:auto
 
     <!-- Step 3 -->
     <div class="step s3" id="step3">
-      <div class="step-hdr">
+      <div class="step-hdr" id="step3hdr">
         <div class="step-badge" id="badge3">3</div>
         <div class="step-info">
           <div class="step-name">Lot Photos</div>
@@ -361,7 +355,33 @@ canvas{border-radius:5px;display:block;max-width:100%;max-height:100%;width:auto
           </div>
         </div>
 
-        <!-- 2. Photo Strip -->
+        <!-- 2. Auction Details colors -->
+        <div class="s4-section">
+          <div class="s4-section-hdr">
+            <span class="s4-section-icon">🏷️</span>
+            <span class="s4-section-title">Auction Details</span>
+          </div>
+          <div class="s4-row">
+            <div class="s4-ctrl">
+              <div class="s4-ctrl-label">Auction Title Color</div>
+              <div class="color-pair">
+                <input type="color" id="col-auctionText" class="cp" value="#FFFFFF">
+                <div class="color-pair-div"></div>
+                <input type="text" id="hex-auctionText" class="hex-inp" value="#FFFFFF">
+              </div>
+            </div>
+            <div class="s4-ctrl">
+              <div class="s4-ctrl-label">Date Text Color</div>
+              <div class="color-pair">
+                <input type="color" id="col-dateText" class="cp" value="#FFFFFF">
+                <div class="color-pair-div"></div>
+                <input type="text" id="hex-dateText" class="hex-inp" value="#FFFFFF">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Photo Strip -->
         <div class="s4-section">
           <div class="s4-section-hdr">
             <span class="s4-section-icon">🖼️</span>
@@ -386,7 +406,7 @@ canvas{border-radius:5px;display:block;max-width:100%;max-height:100%;width:auto
           </div>
         </div>
 
-        <!-- 3. Call to Action Bar -->
+        <!-- 4. Call to Action Bar -->
         <div class="s4-section">
           <div class="s4-section-hdr">
             <span class="s4-section-icon">📢</span>
@@ -409,26 +429,10 @@ canvas{border-radius:5px;display:block;max-width:100%;max-height:100%;width:auto
                 <input type="text" id="hex-closingText" class="hex-inp" value="#000000">
               </div>
             </div>
-            <div class="s4-ctrl">
-              <div class="s4-ctrl-label">Auction Title Color</div>
-              <div class="color-pair">
-                <input type="color" id="col-auctionText" class="cp" value="#FFFFFF">
-                <div class="color-pair-div"></div>
-                <input type="text" id="hex-auctionText" class="hex-inp" value="#FFFFFF">
-              </div>
-            </div>
-            <div class="s4-ctrl">
-              <div class="s4-ctrl-label">Date Text Color</div>
-              <div class="color-pair">
-                <input type="color" id="col-dateText" class="cp" value="#FFFFFF">
-                <div class="color-pair-div"></div>
-                <input type="text" id="hex-dateText" class="hex-inp" value="#FFFFFF">
-              </div>
-            </div>
           </div>
         </div>
 
-        <!-- 4. Bid Now Button -->
+        <!-- 5. Bid Now Button -->
         <div class="s4-section">
           <div class="s4-section-hdr">
             <span class="s4-section-icon">🔨</span>
@@ -457,7 +461,7 @@ canvas{border-radius:5px;display:block;max-width:100%;max-height:100%;width:auto
       </div>
     </div>
 
-  </div><!-- end left-panel -->
+  </div>
 
   <div class="right-panel">
     <div class="preview-header">
@@ -467,7 +471,7 @@ canvas{border-radius:5px;display:block;max-width:100%;max-height:100%;width:auto
         <button class="btn btn-danger" id="resetBtn">✕ Reset</button>
       </div>
     </div>
-    <div class="preview-area" id="previewArea">
+    <div class="preview-area">
       <div id="previewPlaceholder" class="preview-placeholder">
         <div class="preview-placeholder-icon">🖼️</div>
         <div class="preview-placeholder-text">Upload a logo to see a live preview</div>
@@ -499,8 +503,8 @@ canvas{border-radius:5px;display:block;max-width:100%;max-height:100%;width:auto
 'use strict';
 
 var LOGO_X=16,LOGO_Y=19,LOGO_W=262,LOGO_H=103;
-var TITLE_X=294,TITLE_Y=19,TITLE_W=427,TITLE_H=103;
-var DATE_X=732,DATE_Y=18,DATE_W=252,DATE_H=122;
+var TITLE_Y=19,TITLE_H=103;
+var DATE_X=732,DATE_Y=18,DATE_W=252;
 var AE_Y=18,AE_H=36,DATED_Y=65,DATED_H=57;
 var PHOTO_X=16,PHOTO_Y=132,PHOTO_W=968,PHOTO_H=268;
 var GOLD_X=16,GOLD_Y=410,GOLD_W=716,GOLD_H=79;
@@ -515,7 +519,6 @@ var logoPalette=[],brandOverride=null,currentPresetName=null;
 var gradDir=true,photoBorderOn=true,forceTwoLines=false,line1WordCount=-1;
 var exportHistory=[];
 var lastState=null,undoTimer=null;
-// track which uploads are done to know when to auto-advance
 var tmplLoaded=false,logoLoaded=false;
 
 var GRADIENTS=[
@@ -584,22 +587,30 @@ function loadImageFile(file,cb){
   r.readAsDataURL(file);
 }
 
-// ── Auto-advance step 1 → step 2 ──
+// ── Step open/close ──
+function openStep(n){
+  var body=document.querySelector('#step'+n+' .step-body'),chevron=document.querySelector('#step'+n+' .step-chevron');
+  if(body&&body.style.display!=='block'){body.style.display='block';if(chevron)chevron.style.transform='rotate(180deg)';}
+}
+function closeStep(n){
+  var body=document.querySelector('#step'+n+' .step-body'),chevron=document.querySelector('#step'+n+' .step-chevron');
+  if(body){body.style.display='none';}if(chevron){chevron.style.transform='';}
+}
+function scrollToStep(n){
+  var el=document.getElementById('step'+n);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});}
+
+// ── Auto-advance step 1 → 2 (both uploads done) ──
 function checkAutoAdvance(){
   if(tmplLoaded&&logoLoaded){
-    // close step 1
-    var body1=document.querySelector('#step1 .step-body');
-    var chev1=document.querySelector('#step1 .step-chevron');
-    if(body1){body1.style.display='none';}
-    if(chev1){chev1.style.transform='';}
-    // open step 2
-    var body2=document.querySelector('#step2 .step-body');
-    var chev2=document.querySelector('#step2 .step-chevron');
-    if(body2){body2.style.display='block';}
-    if(chev2){chev2.style.transform='rotate(180deg)';}
-    // scroll to top of step 2
-    var s2=document.getElementById('step2');
-    if(s2){s2.scrollIntoView({behavior:'smooth',block:'start'});}
+    closeStep(1);openStep(2);scrollToStep(2);
+  }
+}
+
+// ── Auto-advance step 3 → 4 (all 4 photos loaded) ──
+function checkAllPhotos(){
+  var allFour=photoImgs.every(function(p){return p!==null;});
+  if(allFour){
+    closeStep(3);openStep(4);scrollToStep(4);
   }
 }
 
@@ -653,15 +664,6 @@ function updateBadges(){
     else{b3.textContent='3';b3.classList.remove('done');if(s2)p3.classList.add('active');}}
   if(s1&&s2)p4.classList.add('active');
   document.getElementById('progressFill').style.width=Math.round(done/3*100)+'%';
-}
-
-function openStep(n){
-  var body=document.querySelector('#step'+n+' .step-body'),chevron=document.querySelector('#step'+n+' .step-chevron');
-  if(body&&body.style.display!=='block'){body.style.display='block';if(chevron)chevron.style.transform='rotate(180deg)';}
-}
-function closeStep(n){
-  var body=document.querySelector('#step'+n+' .step-body'),chevron=document.querySelector('#step'+n+' .step-chevron');
-  if(body){body.style.display='none';}if(chevron){chevron.style.transform='';}
 }
 
 // ── Storage ──
@@ -778,6 +780,7 @@ function handlePhoto(file,idx){
       var thumb=document.getElementById('thumb'+idx);thumb.src=e.target.result;thumb.style.display='block';
       document.getElementById('zone'+idx).classList.add('filled');
       setStatus('Photo '+(idx+1)+' loaded.',true);updateBadges();renderPreview();
+      checkAllPhotos();
     };img.src=e.target.result;
   };reader.readAsDataURL(file);
 }
@@ -1037,7 +1040,6 @@ function resetAll(){
     'col-btnText':'#FFFFFF','hex-btnText':'#FFFFFF'};
   Object.keys(defs).forEach(function(id){var el=document.getElementById(id);if(el)el.value=defs[id];});
   buildPhotoSlots();updateBadges();updateTitleLinesHint();
-  // reopen step 1, close others
   openStep(1);closeStep(2);closeStep(3);closeStep(4);
   document.getElementById('previewCanvas').style.display='none';
   document.getElementById('previewPlaceholder').style.display='block';
@@ -1045,10 +1047,14 @@ function resetAll(){
 }
 
 function init(){
+  // Accordion — intercept step 3 header click to close step 2
   document.querySelectorAll('.step-hdr').forEach(function(hdr){
+    var step=hdr.parentElement;
     var body=hdr.nextElementSibling,chevron=hdr.querySelector('.step-chevron');
     hdr.addEventListener('click',function(){
       var open=body.style.display==='block';
+      // If opening step 3, close step 2
+      if(!open&&step.id==='step3'){closeStep(2);}
       body.style.display=open?'none':'block';
       if(chevron)chevron.style.transform=open?'':'rotate(180deg)';
     });
