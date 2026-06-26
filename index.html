@@ -23,11 +23,11 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
 .topbar-title{font-size:17px;font-weight:900;color:var(--text);white-space:nowrap;}
 .topbar-sub{font-size:10px;color:var(--accent);margin-top:1px;white-space:nowrap;}
 
-/* Progress — takes all remaining space */
-.topbar-progress{display:flex;flex-direction:column;align-items:stretch;gap:6px;width:100%;}
+/* Progress bar — 85% of available column width, centered */
+.topbar-progress{display:flex;flex-direction:column;align-items:center;gap:6px;width:85%;}
 .progress-bar-track{height:6px;background:var(--border);border-radius:3px;overflow:hidden;width:100%;}
 .progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:3px;transition:width .4s;}
-.progress-steps{display:flex;justify-content:space-between;}
+.progress-steps{display:flex;justify-content:space-between;width:100%;}
 .progress-step-label{font-size:10px;color:var(--text-faint);font-weight:700;text-transform:uppercase;letter-spacing:.5px;transition:color .3s;}
 .progress-step-label.done{color:var(--green);}
 .progress-step-label.active{color:var(--accent);}
@@ -49,9 +49,10 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
 .step-badge{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:#fff;flex-shrink:0;transition:background .3s;}
 .step-badge.done{background:var(--green)!important;}
 .s1 .step-badge{background:#4fa8cc;}
-.s2 .step-badge{background:#7c6ef5;}
-.s3 .step-badge{background:#f0a030;}
-.s4 .step-badge{background:#e05252;}
+.s2 .step-badge{background:#9b6ef5;}
+.s3 .step-badge{background:#7c6ef5;}
+.s4 .step-badge{background:#f0a030;}
+.s5 .step-badge{background:#e05252;}
 .step-info{flex:1;}
 .step-name{font-size:13px;font-weight:800;color:var(--text);}
 .step-desc{font-size:10px;color:var(--text-dim);margin-top:1px;}
@@ -73,15 +74,6 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
 .btn-reup{background:transparent;border:1px solid var(--border2);color:var(--text-dim);border-radius:5px;padding:4px 9px;font-size:10px;cursor:pointer;white-space:nowrap;}
 .btn-reup:hover{border-color:var(--accent);color:var(--accent);}
 
-/* ── Palette ── */
-.pal-block{margin-top:12px;padding-top:12px;border-top:1px solid var(--border);}
-.pal-label{font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;}
-.pal-row{display:flex;gap:5px;align-items:center;margin-bottom:8px;}
-.swatch{width:20px;height:20px;border-radius:5px;border:1px solid rgba(255,255,255,.1);}
-.override-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
-.override-note{display:none;font-size:10px;color:var(--accent);align-items:center;gap:4px;margin-top:5px;}
-.override-note.visible{display:flex;}
-
 /* ── Color pair pill ── */
 .color-pair{display:flex;align-items:center;background:var(--surface2);border:1.5px solid var(--border2);border-radius:6px;overflow:hidden;}
 .color-pair input[type=color].cp{border:none;border-radius:0;background:transparent;width:30px;height:26px;padding:2px 3px;flex-shrink:0;cursor:pointer;}
@@ -89,12 +81,11 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
 .color-pair input.hex-inp{border:none;background:transparent;color:var(--text);font-size:11px;font-family:'Consolas',monospace;outline:none;padding:0 6px;width:72px;}
 input[type=color].cp{width:34px;height:28px;border:1.5px solid var(--border2);border-radius:5px;cursor:pointer;padding:2px;background:var(--surface2);}
 
-/* ── Presets ── */
-.preset-block{margin-top:12px;padding-top:12px;border-top:1px solid var(--border);}
+/* ── Preset step (step 2) ── */
 .preset-block-title{font-size:10px;font-weight:800;color:var(--text-dim);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;}
 .preset-bar{display:flex;gap:7px;align-items:center;margin-bottom:8px;}
 .preset-bar input{flex:1;padding:6px 9px;border-radius:7px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--text);font-size:11px;outline:none;}
-.preset-list{display:flex;flex-direction:column;gap:5px;max-height:160px;overflow-y:auto;}
+.preset-list{display:flex;flex-direction:column;gap:5px;max-height:220px;overflow-y:auto;}
 .preset-item{display:flex;align-items:center;gap:7px;background:var(--surface2);border:1.5px solid var(--border);border-radius:7px;padding:6px 10px;}
 .preset-item:hover{border-color:var(--border2);}
 .preset-item.active-preset{border-color:var(--accent);background:var(--accent-glow);}
@@ -132,7 +123,7 @@ input[type=color].cp{width:34px;height:28px;border:1.5px solid var(--border2);bo
 .trans-overlay.active{background:rgba(79,168,204,.2);border-color:var(--accent);color:var(--accent);}
 .drop-zone.filled .trans-overlay{display:block;}
 
-/* ── Step 4 sections ── */
+/* ── Step 5 (Graphic Customization) sections ── */
 .s4-section{background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:12px;}
 .s4-section:last-child{margin-bottom:0;}
 .s4-section-hdr{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
@@ -141,6 +132,14 @@ input[type=color].cp{width:34px;height:28px;border:1.5px solid var(--border2);bo
 .s4-row{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;}
 .s4-ctrl{display:flex;flex-direction:column;gap:5px;}
 .s4-ctrl-label{font-size:10px;color:var(--text-dim);font-weight:600;white-space:nowrap;}
+
+/* Gradient sub-items */
+.grad-sub{margin-top:12px;padding-top:12px;border-top:1px solid var(--border);}
+.grad-sub-title{font-size:10px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;}
+.swatch-row{display:flex;gap:5px;align-items:center;margin-bottom:8px;}
+.swatch{width:20px;height:20px;border-radius:5px;border:1px solid rgba(255,255,255,.1);}
+.override-note{display:none;font-size:10px;color:var(--accent);align-items:center;gap:4px;margin-top:6px;}
+.override-note.visible{display:flex;}
 
 /* ── Seg / Toggle ── */
 .seg-toggle{display:flex;border:1.5px solid var(--border2);border-radius:6px;overflow:hidden;}
@@ -211,9 +210,10 @@ canvas{border-radius:5px;display:block;max-width:100%;max-height:100%;width:auto
     <div class="progress-bar-track"><div class="progress-bar-fill" id="progressFill" style="width:0%"></div></div>
     <div class="progress-steps">
       <span class="progress-step-label active" id="prog1">Logo</span>
-      <span class="progress-step-label" id="prog2">Details</span>
-      <span class="progress-step-label" id="prog3">Photos</span>
-      <span class="progress-step-label" id="prog4">Colors</span>
+      <span class="progress-step-label" id="prog2">Preset</span>
+      <span class="progress-step-label" id="prog3">Details</span>
+      <span class="progress-step-label" id="prog4">Photos</span>
+      <span class="progress-step-label" id="prog5">Colors</span>
     </div>
   </div>
 
@@ -228,7 +228,7 @@ canvas{border-radius:5px;display:block;max-width:100%;max-height:100%;width:auto
 <div class="layout">
   <div class="left-panel">
 
-    <!-- Step 1 -->
+    <!-- Step 1: Template & Logo -->
     <div class="step s1" id="step1">
       <div class="step-hdr">
         <div class="step-badge" id="badge1">1</div>
@@ -252,40 +252,37 @@ canvas{border-radius:5px;display:block;max-width:100%;max-height:100%;width:auto
             <div class="upload-sub">PNG recommended · filename = auctioneer name</div>
             <input type="file" accept="image/png,image/jpeg,image/gif,image/webp">
           </div>
-          <div class="preset-block">
-            <div class="preset-block-title">Saved Presets &nbsp;<span id="presetCount"></span></div>
-            <div class="preset-bar">
-              <input type="text" id="presetSearch" placeholder="Search presets…">
-              <button class="btn-sm btn-sm-ghost" id="copySettingsBtn" title="Copy settings JSON">📋</button>
-              <button class="btn-sm btn-sm-accent" id="savePresetBtn">💾 Save</button>
-            </div>
-            <div class="preset-list" id="presetList"></div>
-          </div>
-          <div id="palSection" style="display:none;">
-            <div class="pal-block">
-              <div class="pal-label">Matched Gradient</div>
-              <div class="pal-row" id="palRow"></div>
-              <div class="pal-label">Brand Color Override</div>
-              <div class="override-row">
-                <div class="color-pair">
-                  <input type="color" id="brandPicker" class="cp" value="#0057FF">
-                  <div class="color-pair-div"></div>
-                  <input type="text" id="brandHex" value="#0057FF" class="hex-inp">
-                </div>
-                <button class="btn-sm btn-sm-accent" id="applyOverride">Apply</button>
-                <button class="btn-sm btn-sm-ghost" id="clearOverride">Reset</button>
-              </div>
-              <div id="overrideNote" class="override-note"><span>●</span> Using brand color override</div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
 
-    <!-- Step 2 -->
+    <!-- Step 2: Load Auctioneer Preset -->
     <div class="step s2" id="step2">
       <div class="step-hdr">
         <div class="step-badge" id="badge2">2</div>
+        <div class="step-info">
+          <div class="step-name">Load Auctioneer Preset</div>
+          <div class="step-desc">Apply saved settings for this auctioneer</div>
+        </div>
+        <span class="step-chevron">▼</span>
+      </div>
+      <div class="step-body">
+        <div class="gap10">
+          <div class="preset-bar">
+            <input type="text" id="presetSearch" placeholder="Search presets…">
+            <button class="btn-sm btn-sm-ghost" id="copySettingsBtn" title="Copy settings JSON">📋</button>
+            <button class="btn-sm btn-sm-accent" id="savePresetBtn">💾 Save</button>
+          </div>
+          <div class="preset-list" id="presetList"></div>
+          <div style="font-size:10px;color:var(--text-faint);text-align:center;" id="presetCount"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Auction Details -->
+    <div class="step s3" id="step3">
+      <div class="step-hdr">
+        <div class="step-badge" id="badge3">3</div>
         <div class="step-info">
           <div class="step-name">Auction Details</div>
           <div class="step-desc">Title, end date and file name</div>
@@ -311,10 +308,10 @@ canvas{border-radius:5px;display:block;max-width:100%;max-height:100%;width:auto
       </div>
     </div>
 
-    <!-- Step 3 -->
-    <div class="step s3" id="step3">
-      <div class="step-hdr" id="step3hdr">
-        <div class="step-badge" id="badge3">3</div>
+    <!-- Step 4: Lot Photos -->
+    <div class="step s4" id="step4">
+      <div class="step-hdr">
+        <div class="step-badge" id="badge4">4</div>
         <div class="step-info">
           <div class="step-name">Lot Photos</div>
           <div class="step-desc">Up to 4 photos · drag &amp; drop or click</div>
@@ -326,10 +323,10 @@ canvas{border-radius:5px;display:block;max-width:100%;max-height:100%;width:auto
       </div>
     </div>
 
-    <!-- Step 4 -->
-    <div class="step s4" id="step4">
+    <!-- Step 5: Graphic Customization -->
+    <div class="step s5" id="step5">
       <div class="step-hdr">
-        <div class="step-badge" id="badge4">4</div>
+        <div class="step-badge" id="badge5">5</div>
         <div class="step-info">
           <div class="step-name">Graphic Customization</div>
           <div class="step-desc">Colors, gradient and borders</div>
@@ -338,11 +335,11 @@ canvas{border-radius:5px;display:block;max-width:100%;max-height:100%;width:auto
       </div>
       <div class="step-body">
 
-        <!-- 1. Gradient Direction -->
+        <!-- Gradient Design -->
         <div class="s4-section">
           <div class="s4-section-hdr">
             <span class="s4-section-icon">🎨</span>
-            <span class="s4-section-title">Gradient Direction</span>
+            <span class="s4-section-title">Gradient Design</span>
           </div>
           <div class="s4-row">
             <div class="s4-ctrl">
@@ -353,9 +350,30 @@ canvas{border-radius:5px;display:block;max-width:100%;max-height:100%;width:auto
               </div>
             </div>
           </div>
+
+          <!-- Matched Gradient -->
+          <div class="grad-sub">
+            <div class="grad-sub-title">Matched Gradient</div>
+            <div class="swatch-row" id="palRow"></div>
+          </div>
+
+          <!-- Brand Color Override -->
+          <div class="grad-sub">
+            <div class="grad-sub-title">Brand Color Override</div>
+            <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;">
+              <div class="color-pair">
+                <input type="color" id="brandPicker" class="cp" value="#0057FF">
+                <div class="color-pair-div"></div>
+                <input type="text" id="brandHex" value="#0057FF" class="hex-inp">
+              </div>
+              <button class="btn-sm btn-sm-accent" id="applyOverride">Apply</button>
+              <button class="btn-sm btn-sm-ghost" id="clearOverride">Reset</button>
+            </div>
+            <div id="overrideNote" class="override-note"><span>●</span> Using brand color override</div>
+          </div>
         </div>
 
-        <!-- 2. Auction Details colors -->
+        <!-- Auction Details colors -->
         <div class="s4-section">
           <div class="s4-section-hdr">
             <span class="s4-section-icon">🏷️</span>
@@ -381,7 +399,7 @@ canvas{border-radius:5px;display:block;max-width:100%;max-height:100%;width:auto
           </div>
         </div>
 
-        <!-- 3. Photo Strip -->
+        <!-- Photo Strip -->
         <div class="s4-section">
           <div class="s4-section-hdr">
             <span class="s4-section-icon">🖼️</span>
@@ -406,7 +424,7 @@ canvas{border-radius:5px;display:block;max-width:100%;max-height:100%;width:auto
           </div>
         </div>
 
-        <!-- 4. Call to Action Bar -->
+        <!-- Call to Action Bar -->
         <div class="s4-section">
           <div class="s4-section-hdr">
             <span class="s4-section-icon">📢</span>
@@ -432,7 +450,7 @@ canvas{border-radius:5px;display:block;max-width:100%;max-height:100%;width:auto
           </div>
         </div>
 
-        <!-- 5. Bid Now Button -->
+        <!-- Bid Now Button -->
         <div class="s4-section">
           <div class="s4-section-hdr">
             <span class="s4-section-icon">🔨</span>
@@ -461,7 +479,7 @@ canvas{border-radius:5px;display:block;max-width:100%;max-height:100%;width:auto
       </div>
     </div>
 
-  </div>
+  </div><!-- end left-panel -->
 
   <div class="right-panel">
     <div class="preview-header">
@@ -587,7 +605,7 @@ function loadImageFile(file,cb){
   r.readAsDataURL(file);
 }
 
-// ── Step open/close ──
+// ── Step helpers ──
 function openStep(n){
   var body=document.querySelector('#step'+n+' .step-body'),chevron=document.querySelector('#step'+n+' .step-chevron');
   if(body&&body.style.display!=='block'){body.style.display='block';if(chevron)chevron.style.transform='rotate(180deg)';}
@@ -597,20 +615,20 @@ function closeStep(n){
   if(body){body.style.display='none';}if(chevron){chevron.style.transform='';}
 }
 function scrollToStep(n){
-  var el=document.getElementById('step'+n);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});}
+  var el=document.getElementById('step'+n);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
+}
 
-// ── Auto-advance step 1 → 2 (both uploads done) ──
+// ── Auto-advance: Step 1 → Step 2 (both uploads done) ──
 function checkAutoAdvance(){
   if(tmplLoaded&&logoLoaded){
     closeStep(1);openStep(2);scrollToStep(2);
   }
 }
 
-// ── Auto-advance step 3 → 4 (all 4 photos loaded) ──
+// ── Auto-advance: Step 4 → Step 5 (all 4 photos loaded) ──
 function checkAllPhotos(){
-  var allFour=photoImgs.every(function(p){return p!==null;});
-  if(allFour){
-    closeStep(3);openStep(4);scrollToStep(4);
+  if(photoImgs.every(function(p){return p!==null;})){
+    closeStep(4);openStep(5);scrollToStep(5);
   }
 }
 
@@ -649,20 +667,35 @@ function doUndo(){
   document.getElementById('undoToast').classList.remove('show');setStatus('Undone.',true);
 }
 
-// ── Progress / Badges ──
+// ── Progress / Badges — now 5 steps, tracking logo, details, photos ──
 function updateBadges(){
-  var b1=document.getElementById('badge1'),b2=document.getElementById('badge2'),b3=document.getElementById('badge3');
-  var p1=document.getElementById('prog1'),p2=document.getElementById('prog2'),p3=document.getElementById('prog3'),p4=document.getElementById('prog4');
+  var b1=document.getElementById('badge1'),b2=document.getElementById('badge2'),
+      b3=document.getElementById('badge3'),b4=document.getElementById('badge4'),b5=document.getElementById('badge5');
+  var p1=document.getElementById('prog1'),p2=document.getElementById('prog2'),
+      p3=document.getElementById('prog3'),p4=document.getElementById('prog4'),p5=document.getElementById('prog5');
+  [p1,p2,p3,p4,p5].forEach(function(el){el.classList.remove('done','active');});
+
+  var s1=!!logoImg;
+  var s3=!!(document.getElementById('auctionTitle').value.trim()&&document.getElementById('auctionEndDate').value.trim());
+  var s4=photoImgs.some(function(p){return p!==null;});
   var done=0;
-  var s1=!!logoImg,s2=!!(document.getElementById('auctionTitle').value.trim()&&document.getElementById('auctionEndDate').value.trim()),s3=photoImgs.some(function(p){return p!==null;});
-  [p1,p2,p3,p4].forEach(function(el){el.classList.remove('done','active');});
+
+  // Step 1
   if(s1){b1.textContent='✓';b1.classList.add('done');done++;p1.classList.add('done');}
   else{b1.textContent='1';b1.classList.remove('done');p1.classList.add('active');}
-  if(s2){b2.textContent='✓';b2.classList.add('done');done++;p2.classList.add('done');}
-  else{b2.textContent='2';b2.classList.remove('done');if(s1)p2.classList.add('active');}
-  if(b3){if(s3){b3.textContent='✓';b3.classList.add('done');done++;p3.classList.add('done');}
-    else{b3.textContent='3';b3.classList.remove('done');if(s2)p3.classList.add('active');}}
-  if(s1&&s2)p4.classList.add('active');
+  // Step 2 (preset — optional, mark active when logo loaded)
+  b2.textContent='2';b2.classList.remove('done');
+  if(s1)p2.classList.add('active');
+  // Step 3
+  if(s3){b3.textContent='✓';b3.classList.add('done');done++;p3.classList.add('done');}
+  else{b3.textContent='3';b3.classList.remove('done');if(s1)p3.classList.add('active');}
+  // Step 4
+  if(s4){b4.textContent='✓';b4.classList.add('done');done++;p4.classList.add('done');}
+  else{b4.textContent='4';b4.classList.remove('done');if(s3)p4.classList.add('active');}
+  // Step 5
+  b5.textContent='5';b5.classList.remove('done');
+  if(s1&&s3)p5.classList.add('active');
+
   document.getElementById('progressFill').style.width=Math.round(done/3*100)+'%';
 }
 
@@ -676,11 +709,11 @@ async function storageGet(k){var v=lsGet(k);if(v!==null)return v;try{var r=await
 async function storageDel(k){lsDel(k);try{await window.storage.delete(k);}catch(e){}}
 async function storageKeys(pfx){var keys=lsKeys(pfx);try{var r=await window.storage.list(pfx);if(r&&r.keys)r.keys.forEach(function(k){if(keys.indexOf(k)<0)keys.push(k);});}catch(e){}return keys;}
 
-// ── Palette ──
+// ── Palette swatches ──
 function updatePaletteSwatches(rgb){
   var matched=matchGradient(rgb),row=document.getElementById('palRow');row.innerHTML='';
   var s1=document.createElement('div');s1.className='swatch';s1.style.background='rgb('+matched[0]+')';row.appendChild(s1);
-  var ar=document.createElement('span');ar.style.cssText='font-size:10px;color:var(--text-faint);margin:0 2px;';ar.textContent='→';row.appendChild(ar);
+  var ar=document.createElement('span');ar.style.cssText='font-size:10px;color:var(--text-faint);margin:0 4px;';ar.textContent='→';row.appendChild(ar);
   var s2=document.createElement('div');s2.className='swatch';s2.style.background='rgb('+matched[matched.length-1]+')';row.appendChild(s2);
 }
 
@@ -715,7 +748,12 @@ function makeLoadedBar(el,name,sub,accept,onFile){
 async function checkAutoPreset(name){
   var key=PRESET_PREFIX+name.toLowerCase().replace(/\s+/g,'-');
   var val=await storageGet(key);
-  if(val){try{var p=JSON.parse(val);applySettings(p);currentPresetName=p.name;renderPresetList();setStatus('Preset auto-loaded: '+p.name+' ✓',true);}catch(e){}}
+  if(val){
+    try{
+      var p=JSON.parse(val);applySettings(p);currentPresetName=p.name;
+      renderPresetList();setStatus('Preset auto-loaded: '+p.name+' ✓',true);
+    }catch(e){}
+  }
 }
 
 function onTmplFile(file){
@@ -738,7 +776,6 @@ function onLogoFile(file){
       logoImg=trimmed;logoLoaded=true;brandOverride=null;
       document.getElementById('overrideNote').classList.remove('visible');
       updatePaletteSwatches(logoPalette[0]);
-      document.getElementById('palSection').style.display='block';
       makeLoadedBar(document.getElementById('logoArea'),rawName,img.width+'×'+img.height+' px','image/png,image/jpeg,image/gif,image/webp',onLogoFile);
       setStatus('Logo loaded: '+rawName,true);
       updateBadges();renderPreview();checkAutoPreset(rawName);
@@ -828,8 +865,11 @@ function applySettings(s){
     document.getElementById('brandPicker').value=s.brandOverrideHex;
     document.getElementById('brandHex').value=s.brandOverrideHex;
     document.getElementById('overrideNote').classList.add('visible');
-    updatePaletteSwatches(brandOverride);
-  }else{brandOverride=null;}
+    if(logoPalette.length)updatePaletteSwatches(brandOverride);
+  }else{
+    brandOverride=null;
+    document.getElementById('overrideNote').classList.remove('visible');
+  }
   updateTitleLinesHint();
 }
 async function getAllPresets(){
@@ -862,8 +902,9 @@ async function renderPresetList(){
   var search=document.getElementById('presetSearch').value.trim().toLowerCase();
   var presets=await getAllPresets();
   var filtered=search?presets.filter(function(p){return p.name.toLowerCase().indexOf(search)>=0;}):presets;
-  document.getElementById('presetCount').textContent=presets.length+' saved';
-  if(!filtered.length){list.innerHTML='<div class="preset-empty">'+(presets.length===0?'No presets yet.':'No presets match.')+'</div>';return;}
+  var countEl=document.getElementById('presetCount');
+  if(countEl)countEl.textContent=presets.length+' preset'+(presets.length!==1?'s':'')+' saved';
+  if(!filtered.length){list.innerHTML='<div class="preset-empty">'+(presets.length===0?'No presets yet. Save settings after loading a logo.':'No presets match.')+'</div>';return;}
   list.innerHTML='';
   filtered.forEach(function(p){
     var item=document.createElement('div');item.className='preset-item'+(currentPresetName===p.name?' active-preset':'');
@@ -1024,8 +1065,8 @@ function resetAll(){
   exportHistory=[];document.getElementById('historySection').style.display='none';
   makeUploadArea(document.getElementById('tmplArea'),'📄','Drop or Upload Template','PNG or JPG · banner layout','image/png,image/jpeg',onTmplFile);
   makeUploadArea(document.getElementById('logoArea'),'🏷️','Drop or Upload Auctioneer Logo','PNG recommended · filename = auctioneer name','image/png,image/jpeg,image/gif,image/webp',onLogoFile);
-  document.getElementById('palSection').style.display='none';
   document.getElementById('overrideNote').classList.remove('visible');
+  document.getElementById('palRow').innerHTML='';
   document.getElementById('auctioneerLabel').textContent='No auctioneer loaded';
   document.getElementById('auctionEndDate').value='';document.getElementById('auctionTitle').value='';
   document.getElementById('fileName').value='Notification';
@@ -1040,21 +1081,21 @@ function resetAll(){
     'col-btnText':'#FFFFFF','hex-btnText':'#FFFFFF'};
   Object.keys(defs).forEach(function(id){var el=document.getElementById(id);if(el)el.value=defs[id];});
   buildPhotoSlots();updateBadges();updateTitleLinesHint();
-  openStep(1);closeStep(2);closeStep(3);closeStep(4);
+  openStep(1);closeStep(2);closeStep(3);closeStep(4);closeStep(5);
   document.getElementById('previewCanvas').style.display='none';
   document.getElementById('previewPlaceholder').style.display='block';
   renderPresetList();setStatus('Reset complete.',true);
 }
 
 function init(){
-  // Accordion — intercept step 3 header click to close step 2
+  // Accordion with step-aware close logic
   document.querySelectorAll('.step-hdr').forEach(function(hdr){
     var step=hdr.parentElement;
     var body=hdr.nextElementSibling,chevron=hdr.querySelector('.step-chevron');
     hdr.addEventListener('click',function(){
       var open=body.style.display==='block';
-      // If opening step 3, close step 2
-      if(!open&&step.id==='step3'){closeStep(2);}
+      // Opening step 4 closes step 3
+      if(!open&&step.id==='step4'){closeStep(3);}
       body.style.display=open?'none':'block';
       if(chevron)chevron.style.transform=open?'':'rotate(180deg)';
     });
@@ -1065,6 +1106,7 @@ function init(){
   makeUploadArea(document.getElementById('logoArea'),'🏷️','Drop or Upload Auctioneer Logo','PNG recommended · filename = auctioneer name','image/png,image/jpeg,image/gif,image/webp',onLogoFile);
   buildPhotoSlots();
 
+  // Brand override
   var picker=document.getElementById('brandPicker'),hexInp=document.getElementById('brandHex');
   picker.addEventListener('input',function(){hexInp.value=picker.value;});
   hexInp.addEventListener('input',function(){var v=hexInp.value.trim();if(v.charAt(0)!=='#')v='#'+v;if(/^#[0-9A-Fa-f]{6}$/.test(v))picker.value=v;});
