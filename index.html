@@ -858,8 +858,8 @@ function applySettings(s){
   if(!s)return;
   gradDir=s.gradDir!==undefined?s.gradDir:true;
   photoBorderOn=s.photoBorderOn!==undefined?s.photoBorderOn:true;
-  // Only apply forceTwoLines from settings if explicitly true; default to false
-  forceTwoLines=s.forceTwoLines===true;
+  // Always default to 1 Line — never restore 2-line mode from saved settings
+  forceTwoLines=false;
   line1WordCount=s.line1WordCount!==undefined?s.line1WordCount:-1;
   document.getElementById('dirLtr').classList.toggle('active',gradDir);
   document.getElementById('dirRtl').classList.toggle('active',!gradDir);
