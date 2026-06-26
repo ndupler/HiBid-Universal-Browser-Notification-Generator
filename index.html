@@ -79,10 +79,11 @@ input.hex-inp:focus{border-color:var(--accent);}
 .field label{font-size:12px;font-weight:700;color:var(--text);}
 .field input[type=text]{padding:9px 11px;border-radius:7px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--text);font-size:12px;outline:none;width:100%;}
 .field input[type=text]:focus{border-color:var(--accent);}
+.title-lines-row{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--surface2);border:1.5px solid var(--border2);border-radius:7px;}
+.title-lines-label{font-size:12px;font-weight:700;color:var(--text);}
+.title-lines-hint{font-size:10px;color:var(--text-dim);margin-top:2px;}
 .photos-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
 .slot-wrap{display:flex;flex-direction:column;gap:5px;}
-.slot-label-input{padding:5px 7px;border-radius:5px;border:1px solid var(--border2);background:var(--surface2);color:var(--text-dim);font-size:10px;outline:none;width:100%;}
-.slot-label-input:focus{border-color:var(--accent);color:var(--text);}
 .drop-zone{width:100%;height:80px;border:1.5px dashed var(--border2);border-radius:7px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;overflow:hidden;transition:all .2s;background:var(--surface2);gap:2px;}
 .drop-zone:hover,.drop-zone.dragover{border-color:var(--accent);background:var(--accent-glow);}
 .drop-zone.filled{border-color:rgba(39,201,122,.5);border-style:solid;}
@@ -234,6 +235,17 @@ canvas{border-radius:5px;display:block;max-width:100%;height:auto;}
         <div class="field-group">
           <div class="field"><label>Auction End Date</label><input type="text" id="auctionEndDate" placeholder="e.g. June 16th"></div>
           <div class="field"><label>Auction Title</label><input type="text" id="auctionTitle" placeholder="e.g. Estate Auction"></div>
+          <!-- Title Lines toggle moved here -->
+          <div class="title-lines-row">
+            <div>
+              <div class="title-lines-label">Title Lines</div>
+              <div class="title-lines-hint" id="titleLinesHint">Auto · splits if title is long</div>
+            </div>
+            <div class="seg-toggle">
+              <button class="seg-btn active" id="titleOne">1 Line</button>
+              <button class="seg-btn" id="titleTwo">2 Lines</button>
+            </div>
+          </div>
           <div class="field"><label>Export File Name</label><input type="text" id="fileName" value="Notification"></div>
         </div>
       </div>
@@ -245,7 +257,7 @@ canvas{border-radius:5px;display:block;max-width:100%;height:auto;}
         <div class="step-badge" id="badge3">3</div>
         <div class="step-info">
           <div class="step-name">Lot Photos</div>
-          <div class="step-desc">Up to 4 photos · label each slot</div>
+          <div class="step-desc">Up to 4 photos · drag &amp; drop or click</div>
         </div>
         <span class="step-chevron">▼</span>
       </div>
@@ -274,13 +286,6 @@ canvas{border-radius:5px;display:block;max-width:100%;height:auto;}
               <div class="seg-toggle">
                 <button class="seg-btn active" id="dirLtr">L → R</button>
                 <button class="seg-btn" id="dirRtl">R → L</button>
-              </div>
-            </div>
-            <div class="color-ctrl">
-              <div class="color-ctrl-label">Title Lines</div>
-              <div class="seg-toggle">
-                <button class="seg-btn active" id="titleOne">1 Line</button>
-                <button class="seg-btn" id="titleTwo">2 Lines</button>
               </div>
             </div>
             <div class="color-ctrl">
@@ -419,6 +424,9 @@ var photoImgs=[null,null,null,null];
 var photoTransparent=[false,false,false,false];
 var logoPalette=[],brandOverride=null,currentPresetName=null;
 var gradDir=true,photoBorderOn=true,forceTwoLines=false;
+// line1WordCount: number of words locked to line 1 when 2-line mode is active.
+// -1 means "not yet locked" (will be set when 2-line mode is first activated).
+var line1WordCount=-1;
 var exportHistory=[];
 var lastState=null,undoTimer=null;
 
@@ -488,9 +496,38 @@ function loadImageFile(file,cb){
   r.readAsDataURL(file);
 }
 
+// ── Two-line split helpers ──
+// Returns the word count currently on screen (words in the title field right now).
+function currentWordCount(){
+  return document.getElementById('auctionTitle').value.trim().split(/\s+/).filter(Boolean).length;
+}
+// When user activates 2-line mode, lock line1WordCount to current word count.
+function activateTwoLines(){
+  forceTwoLines=true;
+  line1WordCount=currentWordCount();
+  updateTitleLinesHint();
+}
+function deactivateTwoLines(){
+  forceTwoLines=false;
+  line1WordCount=-1;
+  updateTitleLinesHint();
+}
+function updateTitleLinesHint(){
+  var hint=document.getElementById('titleLinesHint');
+  if(!hint)return;
+  if(forceTwoLines&&line1WordCount>0){
+    hint.textContent='Line 1 locked to first '+line1WordCount+' word'+(line1WordCount!==1?'s':'');
+  }else if(forceTwoLines){
+    hint.textContent='2-line mode active';
+  }else{
+    hint.textContent='Auto · splits if title is long';
+  }
+}
+
+// ── Undo ──
 function captureState(){
   return{
-    gradDir:gradDir,photoBorderOn:photoBorderOn,forceTwoLines:forceTwoLines,
+    gradDir:gradDir,photoBorderOn:photoBorderOn,forceTwoLines:forceTwoLines,line1WordCount:line1WordCount,
     brandOverrideHex:brandOverride?rgbToHex(brandOverride):null,
     colors:{auctionText:cv('col-auctionText'),dateText:cv('col-dateText'),photoBorder:cv('col-photoBorder'),
       goldBg:cv('col-goldBg'),closingText:cv('col-closingText'),btnBg:cv('col-btnBg'),btnText:cv('col-btnText')}
@@ -512,6 +549,7 @@ function doUndo(){
   setStatus('Undone.',true);
 }
 
+// ── Badges ──
 function updateBadges(){
   var b1=document.getElementById('badge1');
   var b2=document.getElementById('badge2');
@@ -535,6 +573,7 @@ function openStep(n){
   }
 }
 
+// ── Storage ──
 function lsSet(k,v){try{localStorage.setItem(k,v);return true;}catch(e){return false;}}
 function lsGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
 function lsDel(k){try{localStorage.removeItem(k);}catch(e){}}
@@ -544,6 +583,7 @@ async function storageGet(k){var v=lsGet(k);if(v!==null)return v;try{var r=await
 async function storageDel(k){lsDel(k);try{await window.storage.delete(k);}catch(e){}}
 async function storageKeys(pfx){var keys=lsKeys(pfx);try{var r=await window.storage.list(pfx);if(r&&r.keys)r.keys.forEach(function(k){if(keys.indexOf(k)<0)keys.push(k);});}catch(e){}return keys;}
 
+// ── Palette ──
 function updatePaletteSwatches(rgb){
   var matched=matchGradient(rgb),row=document.getElementById('palRow');
   row.innerHTML='';
@@ -559,6 +599,7 @@ function bindColorPair(colorId,hexId){
   hi.addEventListener('input',function(){var v=hi.value.trim();if(v.charAt(0)!=='#')v='#'+v;if(/^#[0-9A-Fa-f]{6}$/.test(v)){cp.value=v;showUndo('Color changed');renderPreview();}});
 }
 
+// ── Upload helpers ──
 function makeUploadArea(el,icon,title,sub,accept,onFile){
   el.className='upload-area';
   el.innerHTML='<div class="upload-icon">'+icon+'</div><div class="upload-title">'+title+'</div><div class="upload-sub">'+sub+'</div>';
@@ -620,12 +661,11 @@ function onLogoFile(file){
   });
 }
 
+// ── Photo slots (no label inputs) ──
 function buildPhotoSlots(){
   var grid=document.getElementById('photosGrid');grid.innerHTML='';
-  var defaultLabels=['Main Lot','Detail Shot','Lot 3','Lot 4'];
   for(var i=0;i<4;i++){(function(idx){
     var wrap=document.createElement('div');wrap.className='slot-wrap';
-    var labelInp=document.createElement('input');labelInp.className='slot-label-input';labelInp.placeholder=defaultLabels[idx];
     var zone=document.createElement('div');zone.className='drop-zone';zone.id='zone'+idx;
     var icon=document.createElement('span');icon.className='dz-icon';icon.textContent='+';
     var lbl=document.createElement('span');lbl.className='dz-lbl';lbl.textContent='Photo '+(idx+1);
@@ -639,9 +679,9 @@ function buildPhotoSlots(){
     zone.addEventListener('dragover',function(e){e.preventDefault();zone.classList.add('dragover');});
     zone.addEventListener('dragleave',function(){zone.classList.remove('dragover');});
     zone.addEventListener('drop',function(e){e.preventDefault();zone.classList.remove('dragover');if(e.dataTransfer.files[0])handlePhoto(e.dataTransfer.files[0],idx);});
-    var transBtn=document.createElement('button');transBtn.className='trans-btn';transBtn.id='transTog'+idx;transBtn.textContent='BG';
+    var transBtn=document.createElement('button');transBtn.className='trans-btn';transBtn.id='transTog'+idx;transBtn.textContent='BG Transparent';
     transBtn.addEventListener('click',function(){toggleTransparent(idx);});
-    wrap.appendChild(labelInp);wrap.appendChild(zone);wrap.appendChild(transBtn);grid.appendChild(wrap);
+    wrap.appendChild(zone);wrap.appendChild(transBtn);grid.appendChild(wrap);
   })(i);}
 }
 function handlePhoto(file,idx){
@@ -662,19 +702,20 @@ function clearSlot(idx){
   var t=document.getElementById('thumb'+idx);t.src='';t.style.display='none';
   document.getElementById('zone'+idx).classList.remove('filled');
   document.getElementById('zone'+idx).querySelector('input[type=file]').value='';
-  var tb=document.getElementById('transTog'+idx);if(tb){tb.textContent='BG';tb.classList.remove('active');}
+  var tb=document.getElementById('transTog'+idx);if(tb){tb.textContent='BG Transparent';tb.classList.remove('active');}
   updateBadges();renderPreview();
 }
 function toggleTransparent(idx){
   photoTransparent[idx]=!photoTransparent[idx];
   var btn=document.getElementById('transTog'+idx);
-  btn.textContent=photoTransparent[idx]?'Transparent':'BG';
+  btn.textContent=photoTransparent[idx]?'BG: On':'BG Transparent';
   btn.classList.toggle('active',photoTransparent[idx]);
   renderPreview();
 }
 
+// ── Settings / Presets ──
 function getCurrentSettings(){
-  return{gradDir:gradDir,photoBorderOn:photoBorderOn,forceTwoLines:forceTwoLines,
+  return{gradDir:gradDir,photoBorderOn:photoBorderOn,forceTwoLines:forceTwoLines,line1WordCount:line1WordCount,
     brandOverrideHex:brandOverride?rgbToHex(brandOverride):null,
     colors:{auctionText:cv('col-auctionText'),dateText:cv('col-dateText'),photoBorder:cv('col-photoBorder'),
       goldBg:cv('col-goldBg'),closingText:cv('col-closingText'),btnBg:cv('col-btnBg'),btnText:cv('col-btnText')}};
@@ -684,6 +725,7 @@ function applySettings(s){
   gradDir=s.gradDir!==undefined?s.gradDir:true;
   photoBorderOn=s.photoBorderOn!==undefined?s.photoBorderOn:true;
   forceTwoLines=s.forceTwoLines!==undefined?s.forceTwoLines:false;
+  line1WordCount=s.line1WordCount!==undefined?s.line1WordCount:-1;
   document.getElementById('dirLtr').classList.toggle('active',gradDir);
   document.getElementById('dirRtl').classList.toggle('active',!gradDir);
   document.getElementById('titleOne').classList.toggle('active',!forceTwoLines);
@@ -701,6 +743,7 @@ function applySettings(s){
     document.getElementById('overrideNote').classList.add('visible');
     updatePaletteSwatches(brandOverride);
   }
+  updateTitleLinesHint();
 }
 async function getAllPresets(){
   var result=[],keys=await storageKeys(PRESET_PREFIX);
@@ -752,11 +795,22 @@ async function renderPresetList(){
   });
 }
 
+// ── Drawing ──
 function makeGrad(ctx,gColors,W){
   var g=ctx.createLinearGradient(0,0,W,0);
   for(var i=0;i<gColors.length;i++){var c=gColors[i];g.addColorStop(i/(gColors.length-1),'rgb('+c[0]+','+c[1]+','+c[2]+')');}
   return g;
 }
+
+function getTwoLines(titleText){
+  // Split title into line1 / line2 based on locked word count.
+  var words=titleText.split(/\s+/).filter(Boolean);
+  var split=line1WordCount>0?Math.min(line1WordCount,words.length):Math.ceil(words.length/2);
+  var line1=words.slice(0,split).join(' ');
+  var line2=words.slice(split).join(' ');
+  return{line1:line1,line2:line2};
+}
+
 function drawBanner(canvas){
   if(!logoImg)return false;
   canvas.width=CW;canvas.height=CH;
@@ -766,6 +820,7 @@ function drawBanner(canvas){
   var gFill=makeGrad(ctx,gColors,CW);
   ctx.fillStyle=gFill;ctx.fillRect(0,0,CW,CH);
 
+  // Logo
   var ls=Math.min((LOGO_W-8)/logoImg.width,(LOGO_H-8)/logoImg.height);
   var lw=logoImg.width*ls,lh=logoImg.height*ls;
   var logoDrawRight=LOGO_X+4+lw;
@@ -773,6 +828,7 @@ function drawBanner(canvas){
   ctx.drawImage(logoImg,LOGO_X+4,LOGO_Y+Math.floor((LOGO_H-lh)/2),lw,lh);
   ctx.restore();
 
+  // Date zone
   var dateColor=cv('col-dateText');
   var labelFs=Math.floor(AE_H*0.85);
   do{ctx.font='bold '+labelFs+'px Candara,Calibri,serif';labelFs--;}
@@ -790,6 +846,7 @@ function drawBanner(canvas){
     ctx.fillText(dateVal,DATE_X+DATE_W/2,DATED_Y+DATED_H/2-4);
   }
 
+  // Auction title
   var titleText=document.getElementById('auctionTitle').value.trim();
   if(titleText){
     var titleLeft=logoDrawRight+30;
@@ -798,26 +855,31 @@ function drawBanner(canvas){
     var titleCX=titleLeft+titleZoneW/2;
     ctx.fillStyle=cv('col-auctionText');
     ctx.textAlign='center';ctx.textBaseline='middle';
+
+    // Measure single-line font size
     var singleLineFs=TITLE_H-8;
     do{singleLineFs--;ctx.font='bold italic '+singleLineFs+'px Candara,Calibri,serif';}
     while(ctx.measureText(titleText).width>maxTitleW&&singleLineFs>6);
-    var useTwoLines=titleText.split(' ').length>1&&(forceTwoLines||singleLineFs<35);
+
+    // Use two lines if forced OR auto-split triggers (long title, multi-word)
+    var words=titleText.split(/\s+/).filter(Boolean);
+    var useTwoLines=forceTwoLines||(words.length>1&&singleLineFs<35);
+
     if(useTwoLines){
-      var words=titleText.split(' ');
-      var mid=Math.ceil(words.length/2);
-      var line1=words.slice(0,mid).join(' ');
-      var line2=words.slice(mid).join(' ');
+      var lines=getTwoLines(titleText);
+      var line1=lines.line1,line2=lines.line2;
       var tfs2=TITLE_H/2-4;
       do{tfs2--;ctx.font='bold italic '+tfs2+'px Candara,Calibri,serif';}
-      while((ctx.measureText(line1).width>maxTitleW||ctx.measureText(line2).width>maxTitleW)&&tfs2>6);
+      while((ctx.measureText(line1).width>maxTitleW||(line2&&ctx.measureText(line2).width>maxTitleW))&&tfs2>6);
       ctx.fillText(line1,titleCX,TITLE_Y+TITLE_H*0.3);
-      ctx.fillText(line2,titleCX,TITLE_Y+TITLE_H*0.72);
+      if(line2)ctx.fillText(line2,titleCX,TITLE_Y+TITLE_H*0.72);
     }else{
       ctx.font='bold italic '+singleLineFs+'px Candara,Calibri,serif';
       ctx.fillText(titleText,titleCX,TITLE_Y+TITLE_H/2);
     }
   }
 
+  // Photos
   var filled=[];for(var pi=0;pi<4;pi++){if(photoImgs[pi])filled.push(pi);}
   if(filled.length){
     var n=filled.length;
@@ -843,6 +905,7 @@ function drawBanner(canvas){
     ctx.restore();
   }
 
+  // CTA bar
   ctx.fillStyle=cv('col-goldBg');ctx.fillRect(GOLD_X,GOLD_Y,GOLD_W,GOLD_H);
   var ctaFs=GOLD_H-12;
   do{ctaFs--;ctx.font='bold '+ctaFs+'px Candara,Calibri,serif';}
@@ -851,6 +914,7 @@ function drawBanner(canvas){
   ctx.fillStyle=cv('col-closingText');
   ctx.fillText('BIDDING STARTS CLOSING SOON!',GOLD_X+GOLD_W/2,GOLD_Y+GOLD_H/2+3);
 
+  // Bid Now
   ctx.fillStyle=cv('col-btnBg');ctx.fillRect(BTN_X,BTN_Y,BTN_W,BTN_H);
   var bfs=BTN_H-12;ctx.textAlign='center';ctx.textBaseline='middle';
   do{bfs--;ctx.font='bold '+bfs+'px Candara,Calibri,serif';}
@@ -912,7 +976,8 @@ function exportBanner(){
 
 function resetAll(){
   templateImg=null;logoImg=null;photoImgs=[null,null,null,null];photoTransparent=[false,false,false,false];
-  logoPalette=[];brandOverride=null;currentPresetName=null;gradDir=true;photoBorderOn=true;forceTwoLines=false;
+  logoPalette=[];brandOverride=null;currentPresetName=null;gradDir=true;photoBorderOn=true;
+  forceTwoLines=false;line1WordCount=-1;
   exportHistory=[];document.getElementById('historySection').style.display='none';
   makeUploadArea(document.getElementById('tmplArea'),'📄','Drop or Upload Template','PNG or JPG · banner layout','image/png,image/jpeg',onTmplFile);
   makeUploadArea(document.getElementById('logoArea'),'🏷️','Drop or Upload Auctioneer Logo','PNG recommended · filename = auctioneer name','image/png,image/jpeg,image/gif,image/webp',onLogoFile);
@@ -931,13 +996,14 @@ function resetAll(){
     'col-closingText':'#000000','hex-closingText':'#000000','col-btnBg':'#00CC00','hex-btnBg':'#00CC00',
     'col-btnText':'#FFFFFF','hex-btnText':'#FFFFFF'};
   Object.keys(defs).forEach(function(id){var el=document.getElementById(id);if(el)el.value=defs[id];});
-  buildPhotoSlots();updateBadges();
+  buildPhotoSlots();updateBadges();updateTitleLinesHint();
   document.getElementById('previewCanvas').style.display='none';
   document.getElementById('previewPlaceholder').style.display='block';
   renderPresetList();setStatus('Reset complete.',true);
 }
 
 function init(){
+  // Accordion
   document.querySelectorAll('.step-hdr').forEach(function(hdr){
     var body=hdr.nextElementSibling;
     var chevron=hdr.querySelector('.step-chevron');
@@ -954,6 +1020,7 @@ function init(){
   makeUploadArea(document.getElementById('logoArea'),'🏷️','Drop or Upload Auctioneer Logo','PNG recommended · filename = auctioneer name','image/png,image/jpeg,image/gif,image/webp',onLogoFile);
   buildPhotoSlots();
 
+  // Brand override
   var picker=document.getElementById('brandPicker'),hexInp=document.getElementById('brandHex');
   picker.addEventListener('input',function(){hexInp.value=picker.value;});
   hexInp.addEventListener('input',function(){var v=hexInp.value.trim();if(v.charAt(0)!=='#')v='#'+v;if(/^#[0-9A-Fa-f]{6}$/.test(v))picker.value=v;});
@@ -969,6 +1036,7 @@ function init(){
     if(logoPalette.length)updatePaletteSwatches(logoPalette[0]);renderPreview();
   });
 
+  // Gradient direction
   document.getElementById('dirLtr').addEventListener('click',function(){
     showUndo('Gradient direction changed');gradDir=true;
     document.getElementById('dirLtr').classList.add('active');document.getElementById('dirRtl').classList.remove('active');renderPreview();
@@ -978,15 +1046,23 @@ function init(){
     document.getElementById('dirRtl').classList.add('active');document.getElementById('dirLtr').classList.remove('active');renderPreview();
   });
 
+  // Title lines toggle — lock split at current word count when switching to 2 lines
   document.getElementById('titleOne').addEventListener('click',function(){
-    showUndo('Title lines changed');forceTwoLines=false;
-    document.getElementById('titleOne').classList.add('active');document.getElementById('titleTwo').classList.remove('active');renderPreview();
+    showUndo('Title lines changed');
+    deactivateTwoLines();
+    document.getElementById('titleOne').classList.add('active');
+    document.getElementById('titleTwo').classList.remove('active');
+    renderPreview();
   });
   document.getElementById('titleTwo').addEventListener('click',function(){
-    showUndo('Title lines changed');forceTwoLines=true;
-    document.getElementById('titleTwo').classList.add('active');document.getElementById('titleOne').classList.remove('active');renderPreview();
+    showUndo('Title lines changed');
+    activateTwoLines();
+    document.getElementById('titleTwo').classList.add('active');
+    document.getElementById('titleOne').classList.remove('active');
+    renderPreview();
   });
 
+  // Photo border toggle
   document.getElementById('tog-photoBorder').addEventListener('click',function(){
     showUndo('Photo border toggled');photoBorderOn=!photoBorderOn;this.classList.toggle('on',photoBorderOn);
     document.getElementById('tog-photoBorder-lbl').textContent=photoBorderOn?'On':'Off';renderPreview();
@@ -1021,7 +1097,7 @@ function init(){
     if((e.metaKey||e.ctrlKey)&&e.key==='s'){e.preventDefault();exportBanner();}
   });
 
-  renderPresetList();updateBadges();
+  renderPresetList();updateBadges();updateTitleLinesHint();
   setStatus('Upload a logo to get started.',true);
 }
 
