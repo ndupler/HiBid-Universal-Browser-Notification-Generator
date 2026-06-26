@@ -23,7 +23,8 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--te
 .topbar-title{font-size:16px;font-weight:900;color:var(--text);white-space:nowrap;}
 .topbar-sub{font-size:10px;color:var(--accent);margin-top:1px;white-space:nowrap;}
 
-.topbar-progress{display:flex;flex-direction:column;align-items:center;gap:6px;width:85%;}
+/* Progress bar — 85% wide, shifted 15px right to visually center */
+.topbar-progress{display:flex;flex-direction:column;align-items:center;gap:6px;width:85%;margin-left:15px;}
 .progress-bar-track{height:6px;background:var(--border);border-radius:3px;overflow:hidden;width:100%;}
 .progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:3px;transition:width .4s;}
 .progress-steps{display:flex;justify-content:space-between;width:100%;}
@@ -228,7 +229,7 @@ canvas{border-radius:5px;display:block;max-width:100%;max-height:100%;width:auto
 <div class="layout">
   <div class="left-panel">
 
-    <!-- Step 1: Template & Logo -->
+    <!-- Step 1 -->
     <div class="step s1" id="step1">
       <div class="step-hdr">
         <div class="step-badge" id="badge1">1</div>
@@ -256,7 +257,7 @@ canvas{border-radius:5px;display:block;max-width:100%;max-height:100%;width:auto
       </div>
     </div>
 
-    <!-- Step 2: Load Auctioneer Preset -->
+    <!-- Step 2 -->
     <div class="step s2" id="step2">
       <div class="step-hdr">
         <div class="step-badge" id="badge2">2</div>
@@ -278,7 +279,7 @@ canvas{border-radius:5px;display:block;max-width:100%;max-height:100%;width:auto
       </div>
     </div>
 
-    <!-- Step 3: Auction Details -->
+    <!-- Step 3 -->
     <div class="step s3" id="step3">
       <div class="step-hdr">
         <div class="step-badge" id="badge3">3</div>
@@ -307,7 +308,7 @@ canvas{border-radius:5px;display:block;max-width:100%;max-height:100%;width:auto
       </div>
     </div>
 
-    <!-- Step 4: Lot Photos -->
+    <!-- Step 4 -->
     <div class="step s4" id="step4">
       <div class="step-hdr">
         <div class="step-badge" id="badge4">4</div>
@@ -322,7 +323,7 @@ canvas{border-radius:5px;display:block;max-width:100%;max-height:100%;width:auto
       </div>
     </div>
 
-    <!-- Step 5: Graphic Customization -->
+    <!-- Step 5 -->
     <div class="step s5" id="step5">
       <div class="step-hdr">
         <div class="step-badge" id="badge5">5</div>
@@ -469,7 +470,7 @@ canvas{border-radius:5px;display:block;max-width:100%;max-height:100%;width:auto
       </div>
     </div>
 
-  </div><!-- end left-panel -->
+  </div>
 
   <div class="right-panel">
     <div class="preview-header">
@@ -529,8 +530,7 @@ var gradDir=true,photoBorderOn=true,forceTwoLines=false,line1WordCount=-1;
 var exportHistory=[];
 var lastState=null,undoTimer=null;
 var tmplLoaded=false,logoLoaded=false;
-// track if step 2 has been "completed" (closed or step 3 opened)
-var step2Checked=false;
+var step2Checked=false,step5Checked=false;
 
 var GRADIENTS=[
   ['#FF0000','#DC143C','#800000','#4A0000'],['#FFA500','#CC5500','#A0522D','#6B3A2A'],
@@ -599,10 +599,6 @@ function loadImageFile(file,cb){
 }
 
 // ── Step helpers ──
-function isOpen(n){
-  var body=document.querySelector('#step'+n+' .step-body');
-  return body&&body.style.display==='block';
-}
 function openStep(n){
   var body=document.querySelector('#step'+n+' .step-body'),chevron=document.querySelector('#step'+n+' .step-chevron');
   if(body&&body.style.display!=='block'){body.style.display='block';if(chevron)chevron.style.transform='rotate(180deg)';}
@@ -615,29 +611,40 @@ function scrollToStep(n){
   var el=document.getElementById('step'+n);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
-// Mark step 2 as checked off
+// ── Check-off helpers ──
 function checkStep2(){
   if(!step2Checked){
     step2Checked=true;
-    var b2=document.getElementById('badge2');
-    if(b2){b2.textContent='✓';b2.classList.add('done');}
-    var p2=document.getElementById('prog2');
-    if(p2){p2.classList.remove('active');p2.classList.add('done');}
+    var b=document.getElementById('badge2');if(b){b.textContent='✓';b.classList.add('done');}
+    var p=document.getElementById('prog2');if(p){p.classList.remove('active');p.classList.add('done');}
   }
+}
+function checkStep5(){
+  if(!step5Checked){
+    step5Checked=true;
+    var b=document.getElementById('badge5');if(b){b.textContent='✓';b.classList.add('done');}
+    var p=document.getElementById('prog5');if(p){p.classList.remove('active');p.classList.add('done');}
+  }
+}
+
+// ── Title lines default: ensure 1 Line is active on init/reset ──
+function resetTitleLines(){
+  forceTwoLines=false;
+  line1WordCount=-1;
+  var t1=document.getElementById('titleOne'),t2=document.getElementById('titleTwo');
+  if(t1){t1.classList.add('active');}
+  if(t2){t2.classList.remove('active');}
+  updateTitleLinesHint();
 }
 
 // ── Auto-advance: Step 1 → Step 2 ──
 function checkAutoAdvance(){
-  if(tmplLoaded&&logoLoaded){
-    closeStep(1);openStep(2);scrollToStep(2);
-  }
+  if(tmplLoaded&&logoLoaded){closeStep(1);openStep(2);scrollToStep(2);}
 }
 
 // ── Auto-advance: Step 4 → Step 5 (all 4 photos) ──
 function checkAllPhotos(){
-  if(photoImgs.every(function(p){return p!==null;})){
-    closeStep(4);openStep(5);scrollToStep(5);
-  }
+  if(photoImgs.every(function(p){return p!==null;})){closeStep(4);openStep(5);scrollToStep(5);}
 }
 
 // ── Two-line split ──
@@ -678,40 +685,35 @@ function doUndo(){
 // ── Progress / Badges ──
 function updateBadges(){
   var b1=document.getElementById('badge1'),b3=document.getElementById('badge3'),
-      b4=document.getElementById('badge4'),b5=document.getElementById('badge5');
+      b4=document.getElementById('badge4');
   var p1=document.getElementById('prog1'),p3=document.getElementById('prog3'),
-      p4=document.getElementById('prog4'),p5=document.getElementById('prog5');
-
+      p4=document.getElementById('prog4');
   var s1=!!logoImg;
   var s3=!!(document.getElementById('auctionTitle').value.trim()&&document.getElementById('auctionEndDate').value.trim());
   var s4=photoImgs.some(function(p){return p!==null;});
   var done=0;
 
-  // prog1/badge1
   p1.classList.remove('done','active');
   if(s1){b1.textContent='✓';b1.classList.add('done');done++;p1.classList.add('done');}
   else{b1.textContent='1';b1.classList.remove('done');p1.classList.add('active');}
 
-  // badge2/prog2 handled by checkStep2() separately, don't override done state here
   var p2=document.getElementById('prog2');
   if(!step2Checked){p2.classList.remove('done');if(s1)p2.classList.add('active');else p2.classList.remove('active');}
+  else{done++;}
 
-  // prog3/badge3
   p3.classList.remove('done','active');
   if(s3){b3.textContent='✓';b3.classList.add('done');done++;p3.classList.add('done');}
   else{b3.textContent='3';b3.classList.remove('done');if(step2Checked||s1)p3.classList.add('active');}
 
-  // prog4/badge4
   p4.classList.remove('done','active');
   if(s4){b4.textContent='✓';b4.classList.add('done');done++;p4.classList.add('done');}
   else{b4.textContent='4';b4.classList.remove('done');if(s3)p4.classList.add('active');}
 
-  // prog5/badge5
-  p5.classList.remove('done','active');
-  b5.textContent='5';b5.classList.remove('done');
-  if(s1&&s3)p5.classList.add('active');
+  var p5=document.getElementById('prog5');
+  if(!step5Checked){p5.classList.remove('done');if(s1&&s3)p5.classList.add('active');else p5.classList.remove('active');}
+  else{done++;}
 
-  document.getElementById('progressFill').style.width=Math.round(done/3*100)+'%';
+  document.getElementById('progressFill').style.width=Math.round(done/5*100)+'%';
 }
 
 // ── Storage ──
@@ -763,20 +765,14 @@ function makeLoadedBar(el,name,sub,accept,onFile){
 async function checkAutoPreset(name){
   var key=PRESET_PREFIX+name.toLowerCase().replace(/\s+/g,'-');
   var val=await storageGet(key);
-  if(val){
-    try{
-      var p=JSON.parse(val);applySettings(p);currentPresetName=p.name;
-      renderPresetList();setStatus('Preset auto-loaded: '+p.name+' ✓',true);
-    }catch(e){}
-  }
+  if(val){try{var p=JSON.parse(val);applySettings(p);currentPresetName=p.name;renderPresetList();setStatus('Preset auto-loaded: '+p.name+' ✓',true);}catch(e){}}
 }
 
 function onTmplFile(file){
   loadImageFile(file,function(img){
     templateImg=img;tmplLoaded=true;
     makeLoadedBar(document.getElementById('tmplArea'),file.name.replace(/\.[^.]+$/,''),'Template loaded','image/png,image/jpeg',onTmplFile);
-    setStatus('Template loaded.',true);
-    if(logoImg)renderPreview();
+    setStatus('Template loaded.',true);if(logoImg)renderPreview();
     checkAutoAdvance();
   });
 }
@@ -792,8 +788,7 @@ function onLogoFile(file){
       document.getElementById('overrideNote').classList.remove('visible');
       updatePaletteSwatches(logoPalette[0]);
       makeLoadedBar(document.getElementById('logoArea'),rawName,img.width+'×'+img.height+' px','image/png,image/jpeg,image/gif,image/webp',onLogoFile);
-      setStatus('Logo loaded: '+rawName,true);
-      updateBadges();renderPreview();checkAutoPreset(rawName);
+      setStatus('Logo loaded: '+rawName,true);updateBadges();renderPreview();checkAutoPreset(rawName);
       checkAutoAdvance();
     });
   });
@@ -863,10 +858,12 @@ function applySettings(s){
   if(!s)return;
   gradDir=s.gradDir!==undefined?s.gradDir:true;
   photoBorderOn=s.photoBorderOn!==undefined?s.photoBorderOn:true;
-  forceTwoLines=s.forceTwoLines!==undefined?s.forceTwoLines:false;
+  // Only apply forceTwoLines from settings if explicitly true; default to false
+  forceTwoLines=s.forceTwoLines===true;
   line1WordCount=s.line1WordCount!==undefined?s.line1WordCount:-1;
   document.getElementById('dirLtr').classList.toggle('active',gradDir);
   document.getElementById('dirRtl').classList.toggle('active',!gradDir);
+  // Always sync title line buttons from current forceTwoLines state
   document.getElementById('titleOne').classList.toggle('active',!forceTwoLines);
   document.getElementById('titleTwo').classList.toggle('active',forceTwoLines);
   var t=document.getElementById('tog-photoBorder'),tl=document.getElementById('tog-photoBorder-lbl');
@@ -1073,10 +1070,11 @@ function exportBanner(){
 }
 
 function resetAll(){
-  templateImg=null;logoImg=null;tmplLoaded=false;logoLoaded=false;step2Checked=false;
+  templateImg=null;logoImg=null;tmplLoaded=false;logoLoaded=false;
+  step2Checked=false;step5Checked=false;
   photoImgs=[null,null,null,null];photoTransparent=[false,false,false,false];
   logoPalette=[];brandOverride=null;currentPresetName=null;
-  gradDir=true;photoBorderOn=true;forceTwoLines=false;line1WordCount=-1;
+  gradDir=true;photoBorderOn=true;
   exportHistory=[];document.getElementById('historySection').style.display='none';
   makeUploadArea(document.getElementById('tmplArea'),'📄','Drop or Upload Template','PNG or JPG · banner layout','image/png,image/jpeg',onTmplFile);
   makeUploadArea(document.getElementById('logoArea'),'🏷️','Drop or Upload Auctioneer Logo','PNG recommended · filename = auctioneer name','image/png,image/jpeg,image/gif,image/webp',onLogoFile);
@@ -1087,17 +1085,20 @@ function resetAll(){
   document.getElementById('fileName').value='Notification';
   document.getElementById('brandHex').value='#0057FF';document.getElementById('brandPicker').value='#0057FF';
   document.getElementById('dirLtr').classList.add('active');document.getElementById('dirRtl').classList.remove('active');
-  document.getElementById('titleOne').classList.add('active');document.getElementById('titleTwo').classList.remove('active');
   document.getElementById('tog-photoBorder').classList.add('on');document.getElementById('tog-photoBorder-lbl').textContent='On';
   document.getElementById('copyTextRow').style.display='none';
-  // reset badge2
+  // Reset badge 2 and 5
   var b2=document.getElementById('badge2');if(b2){b2.textContent='2';b2.classList.remove('done');}
+  var b5=document.getElementById('badge5');if(b5){b5.textContent='5';b5.classList.remove('done');}
   var defs={'col-auctionText':'#FFFFFF','hex-auctionText':'#FFFFFF','col-dateText':'#FFFFFF','hex-dateText':'#FFFFFF',
     'col-photoBorder':'#FFFFFF','hex-photoBorder':'#FFFFFF','col-goldBg':'#FFA500','hex-goldBg':'#FFA500',
     'col-closingText':'#000000','hex-closingText':'#000000','col-btnBg':'#00CC00','hex-btnBg':'#00CC00',
     'col-btnText':'#FFFFFF','hex-btnText':'#FFFFFF'};
   Object.keys(defs).forEach(function(id){var el=document.getElementById(id);if(el)el.value=defs[id];});
-  buildPhotoSlots();updateBadges();updateTitleLinesHint();
+  buildPhotoSlots();
+  // Reset title lines to 1 Line default
+  resetTitleLines();
+  updateBadges();
   openStep(1);closeStep(2);closeStep(3);closeStep(4);closeStep(5);
   document.getElementById('previewCanvas').style.display='none';
   document.getElementById('previewPlaceholder').style.display='block';
@@ -1105,37 +1106,22 @@ function resetAll(){
 }
 
 function init(){
-  // Accordion with bilateral step 2↔3 and step 3↔4 logic
+  // Accordion with bilateral step logic + step 5 check-off on close
   document.querySelectorAll('.step-hdr').forEach(function(hdr){
     var step=hdr.parentElement;
     var body=hdr.nextElementSibling,chevron=hdr.querySelector('.step-chevron');
     hdr.addEventListener('click',function(){
       var open=body.style.display==='block';
-
       if(open){
-        // Closing a step
-        if(step.id==='step2'){
-          // Closing step 2 → check it off and open step 3
-          checkStep2();
-          body.style.display='none';if(chevron)chevron.style.transform='';
-          openStep(3);scrollToStep(3);
-        } else if(step.id==='step3'){
-          // Closing step 3 → open step 4
-          body.style.display='none';if(chevron)chevron.style.transform='';
-          openStep(4);scrollToStep(4);
-        } else {
-          body.style.display='none';if(chevron)chevron.style.transform='';
-        }
-      } else {
-        // Opening a step
-        if(step.id==='step3'){
-          // Opening step 3 → check off step 2 and close it
-          checkStep2();
-          closeStep(2);
-        } else if(step.id==='step4'){
-          // Opening step 4 → close step 3
-          closeStep(3);
-        }
+        // Closing
+        if(step.id==='step2'){checkStep2();body.style.display='none';if(chevron)chevron.style.transform='';openStep(3);scrollToStep(3);}
+        else if(step.id==='step3'){body.style.display='none';if(chevron)chevron.style.transform='';openStep(4);scrollToStep(4);}
+        else if(step.id==='step5'){checkStep5();body.style.display='none';if(chevron)chevron.style.transform='';}
+        else{body.style.display='none';if(chevron)chevron.style.transform='';}
+      }else{
+        // Opening
+        if(step.id==='step3'){checkStep2();closeStep(2);}
+        else if(step.id==='step4'){closeStep(3);}
         body.style.display='block';if(chevron)chevron.style.transform='rotate(180deg)';
       }
     });
@@ -1208,7 +1194,10 @@ function init(){
 
   document.addEventListener('keydown',function(e){if((e.metaKey||e.ctrlKey)&&e.key==='s'){e.preventDefault();exportBanner();}});
 
-  renderPresetList();updateBadges();updateTitleLinesHint();
+  // ── Ensure 1 Line is active on first load ──
+  resetTitleLines();
+
+  renderPresetList();updateBadges();
   setStatus('Upload a logo to get started.',true);
 }
 
