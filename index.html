@@ -476,6 +476,10 @@ canvas{border-radius:5px;display:block;max-width:100%;max-height:100%;width:auto
     <div class="preview-header">
       <div class="preview-title">Live Preview</div>
       <div class="preview-actions">
+        <div class="toggle-row" style="gap:6px;margin-right:4px;">
+          <span class="toggle-lbl">Watermark</span>
+          <div class="toggle-track" id="tog-watermark"><div class="toggle-thumb"></div></div>
+        </div>
         <button class="btn btn-save-preset" id="savePresetBtn">💾 Save Preset</button>
         <button class="btn btn-ghost" id="refreshBtn">↻ Refresh</button>
         <button class="btn btn-danger" id="resetBtn">✕ Reset</button>
@@ -527,6 +531,7 @@ var photoImgs=[null,null,null,null];
 var photoTransparent=[false,false,false,false];
 var logoPalette=[],brandOverride=null,currentPresetName=null;
 var gradDir=true,photoBorderOn=true,forceTwoLines=false,line1WordCount=-1;
+var showWatermark=false;
 var exportHistory=[];
 var lastState=null,undoTimer=null;
 var tmplLoaded=false,logoLoaded=false;
@@ -1020,6 +1025,19 @@ function drawBanner(canvas){
   ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=cv('col-btnText');
   ctx.fillText('BID NOW',BTN_X+BTN_W/2,BTN_Y+BTN_H/2+3);
 
+  if(showWatermark){
+    ctx.save();
+    ctx.translate(CW/2,CH/2);
+    ctx.rotate(-Math.atan2(CH,CW));
+    var diag=Math.sqrt(CW*CW+CH*CH),wmFs=Math.floor(CH*0.6);
+    do{wmFs-=2;ctx.font='bold '+wmFs+'px Arial,sans-serif';}while(ctx.measureText('PREVIEW').width>diag*0.92&&wmFs>10);
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillStyle='rgba(255,255,255,0.35)';
+    ctx.lineWidth=Math.max(2,wmFs*0.03);ctx.strokeStyle='rgba(0,0,0,0.25)';
+    ctx.fillText('PREVIEW',0,0);ctx.strokeText('PREVIEW',0,0);
+    ctx.restore();
+  }
+
   return true;
 }
 
@@ -1074,7 +1092,7 @@ function resetAll(){
   step2Checked=false;step5Checked=false;
   photoImgs=[null,null,null,null];photoTransparent=[false,false,false,false];
   logoPalette=[];brandOverride=null;currentPresetName=null;
-  gradDir=true;photoBorderOn=true;
+  gradDir=true;photoBorderOn=true;showWatermark=false;
   exportHistory=[];document.getElementById('historySection').style.display='none';
   makeUploadArea(document.getElementById('tmplArea'),'📄','Drop or Upload Template','PNG or JPG · banner layout','image/png,image/jpeg',onTmplFile);
   makeUploadArea(document.getElementById('logoArea'),'🏷️','Drop or Upload Auctioneer Logo','PNG recommended · filename = auctioneer name','image/png,image/jpeg,image/gif,image/webp',onLogoFile);
@@ -1086,6 +1104,7 @@ function resetAll(){
   document.getElementById('brandHex').value='#0057FF';document.getElementById('brandPicker').value='#0057FF';
   document.getElementById('dirLtr').classList.add('active');document.getElementById('dirRtl').classList.remove('active');
   document.getElementById('tog-photoBorder').classList.add('on');document.getElementById('tog-photoBorder-lbl').textContent='On';
+  document.getElementById('tog-watermark').classList.remove('on');
   document.getElementById('copyTextRow').style.display='none';
   // Reset badge 2 and 5
   var b2=document.getElementById('badge2');if(b2){b2.textContent='2';b2.classList.remove('done');}
@@ -1168,6 +1187,10 @@ function init(){
   document.getElementById('tog-photoBorder').addEventListener('click',function(){
     showUndo('Photo border toggled');photoBorderOn=!photoBorderOn;this.classList.toggle('on',photoBorderOn);
     document.getElementById('tog-photoBorder-lbl').textContent=photoBorderOn?'On':'Off';renderPreview();
+  });
+
+  document.getElementById('tog-watermark').addEventListener('click',function(){
+    showWatermark=!showWatermark;this.classList.toggle('on',showWatermark);renderPreview();
   });
 
   ['auctionText','dateText','photoBorder','goldBg','closingText','btnBg','btnText'].forEach(function(k){bindColorPair('col-'+k,'hex-'+k);});
