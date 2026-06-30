@@ -124,6 +124,14 @@ input[type=color].cp{width:34px;height:28px;border:1.5px solid var(--border2);bo
 .trans-overlay.active{background:rgba(79,168,204,.2);border-color:var(--accent);color:var(--accent);}
 .drop-zone.filled .trans-overlay{display:block;}
 
+/* ── Brightness controls ── */
+.bright-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.bright-row:last-child{margin-bottom:0;}
+.bright-lbl{font-size:10px;color:var(--text-dim);font-weight:600;width:52px;flex-shrink:0;}
+.bright-row input[type=range]{flex:1;accent-color:var(--accent);cursor:pointer;height:4px;}
+.bright-val{font-size:10px;color:var(--text);font-weight:700;width:40px;text-align:right;flex-shrink:0;}
+.bright-empty{font-size:10px;color:var(--text-faint);text-align:center;padding:4px 0;}
+
 /* ── Step 5 sections ── */
 .s4-section{background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:12px;}
 .s4-section:last-child{margin-bottom:0;}
@@ -415,6 +423,10 @@ canvas{border-radius:5px;display:block;max-width:100%;max-height:100%;width:auto
               </div>
             </div>
           </div>
+          <div class="grad-sub">
+            <div class="grad-sub-title">Image Brightness</div>
+            <div id="brightnessControls"></div>
+          </div>
         </div>
 
         <div class="s4-section">
@@ -529,6 +541,7 @@ var PRESET_PREFIX='hibid:notify:';
 var templateImg=null,logoImg=null;
 var photoImgs=[null,null,null,null];
 var photoTransparent=[false,false,false,false];
+var photoBrightness=[100,100,100,100];
 var logoPalette=[],brandOverride=null,currentPresetName=null;
 var gradDir=true,photoBorderOn=true,forceTwoLines=false,line1WordCount=-1;
 var showWatermark=false;
@@ -650,6 +663,31 @@ function checkAutoAdvance(){
 // ── Auto-advance: Step 4 → Step 5 (all 4 photos) ──
 function checkAllPhotos(){
   if(photoImgs.every(function(p){return p!==null;})){closeStep(4);openStep(5);scrollToStep(5);}
+}
+
+// ── Brightness controls (per loaded photo) ──
+function updateBrightnessControls(){
+  var wrap=document.getElementById('brightnessControls');if(!wrap)return;
+  wrap.innerHTML='';
+  var any=false;
+  for(var i=0;i<4;i++){
+    if(!photoImgs[i])continue;
+    any=true;
+    (function(idx){
+      var row=document.createElement('div');row.className='bright-row';
+      var lbl=document.createElement('span');lbl.className='bright-lbl';lbl.textContent='Photo '+(idx+1);
+      var range=document.createElement('input');range.type='range';range.min='50';range.max='200';range.step='5';range.value=photoBrightness[idx];
+      var val=document.createElement('span');val.className='bright-val';val.textContent=photoBrightness[idx]+'%';
+      range.addEventListener('input',function(){
+        photoBrightness[idx]=parseInt(range.value,10);
+        val.textContent=photoBrightness[idx]+'%';
+        renderPreview();
+      });
+      row.appendChild(lbl);row.appendChild(range);row.appendChild(val);
+      wrap.appendChild(row);
+    })(i);
+  }
+  if(!any){wrap.innerHTML='<div class="bright-empty">Add lot photos to adjust brightness</div>';}
 }
 
 // ── Two-line split ──
@@ -829,20 +867,21 @@ function handlePhoto(file,idx){
     var img=new Image();
     img.onload=function(){
       photoImgs[idx]=img;
+      photoBrightness[idx]=100;
       var thumb=document.getElementById('thumb'+idx);thumb.src=e.target.result;thumb.style.display='block';
       document.getElementById('zone'+idx).classList.add('filled');
-      setStatus('Photo '+(idx+1)+' loaded.',true);updateBadges();renderPreview();
+      setStatus('Photo '+(idx+1)+' loaded.',true);updateBadges();updateBrightnessControls();renderPreview();
       checkAllPhotos();
     };img.src=e.target.result;
   };reader.readAsDataURL(file);
 }
 function clearSlot(idx){
-  photoImgs[idx]=null;photoTransparent[idx]=false;
+  photoImgs[idx]=null;photoTransparent[idx]=false;photoBrightness[idx]=100;
   var t=document.getElementById('thumb'+idx);t.src='';t.style.display='none';
   document.getElementById('zone'+idx).classList.remove('filled');
   document.getElementById('zone'+idx).querySelector('input[type=file]').value='';
   var tb=document.getElementById('transTog'+idx);if(tb){tb.textContent='BG';tb.classList.remove('active');}
-  updateBadges();renderPreview();
+  updateBadges();updateBrightnessControls();renderPreview();
 }
 function toggleTransparent(idx){
   photoTransparent[idx]=!photoTransparent[idx];
@@ -1006,7 +1045,9 @@ function drawBanner(canvas){
       var dW=drawW[fi],dH=dW/(photo.width/photo.height),dY;
       if(dH>PHOTO_H){dH=PHOTO_H;dW=dH*(photo.width/photo.height);}
       dY=PHOTO_Y+Math.floor((PHOTO_H-dH)/2);
+      ctx.filter=photoBrightness[idx]!==100?'brightness('+(photoBrightness[idx]/100)+')':'none';
       ctx.drawImage(photo,curX,dY,dW,dH);
+      ctx.filter='none';
       if(!isTransp&&photoBorderOn){ctx.strokeStyle=cv('col-photoBorder');ctx.lineWidth=1;ctx.strokeRect(curX,dY,dW,dH);}
       curX+=dW+gap;
     }
@@ -1090,7 +1131,7 @@ function exportBanner(){
 function resetAll(){
   templateImg=null;logoImg=null;tmplLoaded=false;logoLoaded=false;
   step2Checked=false;step5Checked=false;
-  photoImgs=[null,null,null,null];photoTransparent=[false,false,false,false];
+  photoImgs=[null,null,null,null];photoTransparent=[false,false,false,false];photoBrightness=[100,100,100,100];
   logoPalette=[];brandOverride=null;currentPresetName=null;
   gradDir=true;photoBorderOn=true;showWatermark=false;
   exportHistory=[];document.getElementById('historySection').style.display='none';
@@ -1115,6 +1156,7 @@ function resetAll(){
     'col-btnText':'#FFFFFF','hex-btnText':'#FFFFFF'};
   Object.keys(defs).forEach(function(id){var el=document.getElementById(id);if(el)el.value=defs[id];});
   buildPhotoSlots();
+  updateBrightnessControls();
   // Reset title lines to 1 Line default
   resetTitleLines();
   updateBadges();
@@ -1151,6 +1193,7 @@ function init(){
   makeUploadArea(document.getElementById('tmplArea'),'📄','Drop or Upload Template','PNG or JPG · banner layout','image/png,image/jpeg',onTmplFile);
   makeUploadArea(document.getElementById('logoArea'),'🏷️','Drop or Upload Auctioneer Logo','PNG recommended · filename = auctioneer name','image/png,image/jpeg,image/gif,image/webp',onLogoFile);
   buildPhotoSlots();
+  updateBrightnessControls();
 
   var picker=document.getElementById('brandPicker'),hexInp=document.getElementById('brandHex');
   picker.addEventListener('input',function(){hexInp.value=picker.value;});
