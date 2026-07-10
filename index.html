@@ -783,10 +783,19 @@ function updatePaletteSwatches(rgb){
   var s2=document.createElement('div');s2.className='swatch';s2.style.background='rgb('+matched[matched.length-1]+')';row.appendChild(s2);
 }
 
+// ── Color pair binding (debounced to avoid render-flood freeze) ──
 function bindColorPair(colorId,hexId){
   var cp=document.getElementById(colorId),hi=document.getElementById(hexId);if(!cp||!hi)return;
-  cp.addEventListener('input',function(){hi.value=cp.value;showUndo('Color changed');renderPreview();});
-  hi.addEventListener('input',function(){var v=hi.value.trim();if(v.charAt(0)!=='#')v='#'+v;if(/^#[0-9A-Fa-f]{6}$/.test(v)){cp.value=v;showUndo('Color changed');renderPreview();}});
+  var pending=false;
+  function schedule(){
+    if(pending)return;
+    pending=true;
+    requestAnimationFrame(function(){pending=false;renderPreview();});
+  }
+  cp.addEventListener('input',function(){hi.value=cp.value;schedule();});
+  hi.addEventListener('input',function(){var v=hi.value.trim();if(v.charAt(0)!=='#')v='#'+v;if(/^#[0-9A-Fa-f]{6}$/.test(v)){cp.value=v;schedule();}});
+  cp.addEventListener('change',function(){showUndo('Color changed');});
+  hi.addEventListener('change',function(){showUndo('Color changed');});
 }
 
 // ── Upload helpers ──
