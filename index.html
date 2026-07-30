@@ -122,6 +122,7 @@ input[type=color].cp{width:34px;height:28px;border:1.5px solid var(--border2);bo
 .trans-overlay{position:absolute;bottom:5px;right:5px;z-index:3;background:rgba(11,15,26,.75);border:1px solid rgba(255,255,255,.15);color:var(--text-dim);border-radius:4px;padding:2px 6px;font-size:8px;font-weight:700;cursor:pointer;display:none;line-height:1.4;}
 .trans-overlay:hover{border-color:var(--accent);color:var(--accent);}
 .trans-overlay.active{background:rgba(79,168,204,.2);border-color:var(--accent);color:var(--accent);}
+.trans-overlay.processing{background:rgba(240,160,48,.2);border-color:#f0a030;color:#f0a030;cursor:wait;}
 .drop-zone.filled .trans-overlay{display:block;}
 
 /* ── Brightness controls ── */
@@ -425,6 +426,13 @@ canvas{border-radius:5px;display:block;max-width:100%;max-height:100%;width:auto
                 <input type="text" id="hex-photoBorder" class="hex-inp" value="#FFFFFF">
               </div>
             </div>
+            <div class="s4-ctrl">
+              <div class="s4-ctrl-label">Drop Shadow</div>
+              <div class="toggle-row">
+                <div class="toggle-track on" id="tog-photoShadow"><div class="toggle-thumb"></div></div>
+                <span class="toggle-lbl" id="tog-photoShadow-lbl">On</span>
+              </div>
+            </div>
           </div>
           <div class="grad-sub">
             <div class="grad-sub-title">Image Brightness</div>
@@ -546,10 +554,13 @@ var PRESET_PREFIX='hibid:notify:';
 
 var templateImg=null,logoImg=null;
 var photoImgs=[null,null,null,null];
+var photoOriginalImgs=[null,null,null,null];
+var photoOriginalSrc=[null,null,null,null];
+var photoBgRemoved=[false,false,false,false];
 var photoTransparent=[false,false,false,false];
 var photoBrightness=[100,100,100,100];
 var logoPalette=[],brandOverride=null,currentPresetName=null;
-var gradDir=true,photoBorderOn=true,forceTwoLines=false,line1WordCount=-1;
+var gradDir=true,photoBorderOn=true,photoShadowOn=true,forceTwoLines=false,line1WordCount=-1;
 var showWatermark=false;
 var exportHistory=[];
 var lastState=null,undoTimer=null;
@@ -608,6 +619,74 @@ function trimImage(img,cb){
   var out=document.createElement('canvas');out.width=maxX-minX+1;out.height=maxY-minY+1;
   out.getContext('2d').drawImage(c,minX,minY,out.width,out.height,0,0,out.width,out.height);
   var t=new Image();t.onload=function(){cb(t);};t.src=out.toDataURL();
+}
+
+// ── Auto background removal (edge-aware flood-fill from edges, no external services) ──
+function removeBackgroundClassical(img,cb){
+  var maxDim=900,scale=Math.min(1,maxDim/Math.max(img.width,img.height));
+  var w=Math.max(1,Math.round(img.width*scale)),h=Math.max(1,Math.round(img.height*scale));
+  var c=document.createElement('canvas');c.width=w;c.height=h;
+  var ctx=c.getContext('2d');ctx.drawImage(img,0,0,w,h);
+  var imgData=ctx.getImageData(0,0,w,h),data=imgData.data;
+
+  function px(x,y){var i=(y*w+x)*4;return[data[i],data[i+1],data[i+2]];}
+
+  // Grayscale + Sobel edge-magnitude map, used to stop the fill at strong boundaries
+  var gray=new Float32Array(w*h);
+  for(var p=0;p<w*h;p++){var gi=p*4;gray[p]=0.299*data[gi]+0.587*data[gi+1]+0.114*data[gi+2];}
+  var edge=new Float32Array(w*h);
+  for(var ey=1;ey<h-1;ey++){
+    for(var ex=1;ex<w-1;ex++){
+      var eidx=ey*w+ex;
+      var gx=gray[eidx-1-w]-gray[eidx+1-w]+2*gray[eidx-1]-2*gray[eidx+1]+gray[eidx-1+w]-gray[eidx+1+w];
+      var gy=gray[eidx-w-1]+2*gray[eidx-w]+gray[eidx-w+1]-gray[eidx+w-1]-2*gray[eidx+w]-gray[eidx+w+1];
+      edge[eidx]=Math.sqrt(gx*gx+gy*gy);
+    }
+  }
+
+  // Robust background reference: median color sampled along the full border ring
+  // (median resists a single corner/edge sample landing on the subject)
+  var rs=[],gs=[],bs=[];
+  var stepX=Math.max(1,Math.floor(w/80)),stepY=Math.max(1,Math.floor(h/80));
+  for(var x=0;x<w;x+=stepX){var c1=px(x,0),c2=px(x,h-1);rs.push(c1[0],c2[0]);gs.push(c1[1],c2[1]);bs.push(c1[2],c2[2]);}
+  for(var y=0;y<h;y+=stepY){var c3=px(0,y),c4=px(w-1,y);rs.push(c3[0],c4[0]);gs.push(c3[1],c4[1]);bs.push(c3[2],c4[2]);}
+  rs.sort(function(a,b){return a-b;});gs.sort(function(a,b){return a-b;});bs.sort(function(a,b){return a-b;});
+  var mid=Math.floor(rs.length/2);
+  var ref=[rs[mid],gs[mid],bs[mid]];
+
+  var tolerance=52,edgeThreshold=42;
+  function colorMatch(i){
+    var dr=data[i]-ref[0],dg=data[i+1]-ref[1],db=data[i+2]-ref[2];
+    return Math.sqrt(dr*dr+dg*dg+db*db)<tolerance;
+  }
+
+  var visited=new Uint8Array(w*h),stack=[];
+  function seed(x,y){
+    var idx=y*w+x;if(visited[idx])return;
+    var i=idx*4;
+    if(colorMatch(i)){visited[idx]=1;stack.push(idx);}
+  }
+  for(var sx=0;sx<w;sx++){seed(sx,0);seed(sx,h-1);}
+  for(var sy=0;sy<h;sy++){seed(0,sy);seed(w-1,sy);}
+
+  while(stack.length){
+    var idx=stack.pop(),cx=idx%w,cy=(idx/w)|0,i=idx*4;
+    data[i+3]=0;
+    var nb=[[cx-1,cy],[cx+1,cy],[cx,cy-1],[cx,cy+1]];
+    for(var n=0;n<4;n++){
+      var nx=nb[n][0],ny=nb[n][1];
+      if(nx<0||ny<0||nx>=w||ny>=h)continue;
+      var nidx=ny*w+nx;if(visited[nidx])continue;
+      if(edge[nidx]>edgeThreshold)continue; // don't cross strong boundaries — keeps the subject's outline crisp
+      var ni=nidx*4;
+      if(colorMatch(ni)){visited[nidx]=1;stack.push(nidx);}
+    }
+  }
+
+  ctx.putImageData(imgData,0,0);
+  var result=new Image();
+  result.onload=function(){cb(result);};
+  result.src=c.toDataURL();
 }
 
 function getActivePalette(){return brandOverride?[brandOverride]:logoPalette;}
@@ -714,7 +793,7 @@ function getTwoLines(titleText){
 
 // ── Undo ──
 function captureState(){
-  return{gradDir:gradDir,photoBorderOn:photoBorderOn,forceTwoLines:forceTwoLines,line1WordCount:line1WordCount,
+  return{gradDir:gradDir,photoBorderOn:photoBorderOn,photoShadowOn:photoShadowOn,forceTwoLines:forceTwoLines,line1WordCount:line1WordCount,
     brandOverrideHex:brandOverride?rgbToHex(brandOverride):null,
     colors:{auctionText:cv('col-auctionText'),dateText:cv('col-dateText'),photoBorder:cv('col-photoBorder'),
       goldBg:cv('col-goldBg'),closingText:cv('col-closingText'),btnBg:cv('col-btnBg'),btnText:cv('col-btnText')}};
@@ -864,8 +943,8 @@ function buildPhotoSlots(){
     var thumb=document.createElement('img');thumb.id='thumb'+idx;thumb.style.display='none';
     var clrBtn=document.createElement('button');clrBtn.className='clr-btn';clrBtn.textContent='✕';
     clrBtn.addEventListener('click',function(e){e.stopPropagation();clearSlot(idx);});
-    var transBtn=document.createElement('button');transBtn.className='trans-overlay';transBtn.id='transTog'+idx;transBtn.textContent='BG';
-    transBtn.addEventListener('click',function(e){e.stopPropagation();toggleTransparent(idx);});
+    var transBtn=document.createElement('button');transBtn.className='trans-overlay';transBtn.id='transTog'+idx;transBtn.title='Remove Background';transBtn.textContent='✂ BG';
+    transBtn.addEventListener('click',function(e){e.stopPropagation();toggleBgRemoval(idx);});
     var fileInp=document.createElement('input');fileInp.type='file';fileInp.accept='image/*';
     fileInp.addEventListener('change',function(){if(this.files[0])handlePhoto(this.files[0],idx);});
     zone.appendChild(icon);zone.appendChild(lbl);zone.appendChild(badge);zone.appendChild(thumb);zone.appendChild(clrBtn);zone.appendChild(transBtn);zone.appendChild(fileInp);
@@ -882,33 +961,56 @@ function handlePhoto(file,idx){
     var img=new Image();
     img.onload=function(){
       photoImgs[idx]=img;
+      photoOriginalImgs[idx]=img;
+      photoOriginalSrc[idx]=e.target.result;
+      photoBgRemoved[idx]=false;photoTransparent[idx]=false;
       photoBrightness[idx]=100;
       var thumb=document.getElementById('thumb'+idx);thumb.src=e.target.result;thumb.style.display='block';
       document.getElementById('zone'+idx).classList.add('filled');
+      var tb=document.getElementById('transTog'+idx);if(tb){tb.textContent='✂ BG';tb.classList.remove('active','processing');tb.title='Remove Background';}
       setStatus('Photo '+(idx+1)+' loaded.',true);updateBadges();updateBrightnessControls();renderPreview();
       checkAllPhotos();
     };img.src=e.target.result;
   };reader.readAsDataURL(file);
 }
 function clearSlot(idx){
-  photoImgs[idx]=null;photoTransparent[idx]=false;photoBrightness[idx]=100;
+  photoImgs[idx]=null;photoOriginalImgs[idx]=null;photoOriginalSrc[idx]=null;
+  photoBgRemoved[idx]=false;photoTransparent[idx]=false;photoBrightness[idx]=100;
   var t=document.getElementById('thumb'+idx);t.src='';t.style.display='none';
   document.getElementById('zone'+idx).classList.remove('filled');
   document.getElementById('zone'+idx).querySelector('input[type=file]').value='';
-  var tb=document.getElementById('transTog'+idx);if(tb){tb.textContent='BG';tb.classList.remove('active');}
+  var tb=document.getElementById('transTog'+idx);if(tb){tb.textContent='✂ BG';tb.classList.remove('active','processing');tb.title='Remove Background';}
   updateBadges();updateBrightnessControls();renderPreview();
 }
-function toggleTransparent(idx){
-  photoTransparent[idx]=!photoTransparent[idx];
+function toggleBgRemoval(idx){
+  if(!photoOriginalImgs[idx])return;
   var btn=document.getElementById('transTog'+idx);
-  btn.textContent=photoTransparent[idx]?'BG ✓':'BG';
-  btn.classList.toggle('active',photoTransparent[idx]);
-  renderPreview();
+  if(photoBgRemoved[idx]){
+    // Restore original
+    photoImgs[idx]=photoOriginalImgs[idx];
+    photoBgRemoved[idx]=false;photoTransparent[idx]=false;
+    var thumb=document.getElementById('thumb'+idx);if(thumb)thumb.src=photoOriginalSrc[idx];
+    if(btn){btn.textContent='✂ BG';btn.classList.remove('active');btn.title='Remove Background';}
+    setStatus('Background restored on photo '+(idx+1)+'.',true);
+    renderPreview();
+    return;
+  }
+  if(btn){btn.classList.add('processing');btn.textContent='…';btn.title='Removing background…';}
+  setStatus('Removing background on photo '+(idx+1)+'…',true);
+  setTimeout(function(){
+    removeBackgroundClassical(photoOriginalImgs[idx],function(result){
+      photoImgs[idx]=result;photoBgRemoved[idx]=true;photoTransparent[idx]=true;
+      var thumb=document.getElementById('thumb'+idx);if(thumb)thumb.src=result.src;
+      if(btn){btn.classList.remove('processing');btn.classList.add('active');btn.textContent='↺ Undo';btn.title='Restore Original';}
+      setStatus('Background removed on photo '+(idx+1)+'.',true);
+      renderPreview();
+    });
+  },20);
 }
 
 // ── Settings / Presets ──
 function getCurrentSettings(){
-  return{gradDir:gradDir,photoBorderOn:photoBorderOn,forceTwoLines:forceTwoLines,line1WordCount:line1WordCount,
+  return{gradDir:gradDir,photoBorderOn:photoBorderOn,photoShadowOn:photoShadowOn,forceTwoLines:forceTwoLines,line1WordCount:line1WordCount,
     brandOverrideHex:brandOverride?rgbToHex(brandOverride):null,
     colors:{auctionText:cv('col-auctionText'),dateText:cv('col-dateText'),photoBorder:cv('col-photoBorder'),
       goldBg:cv('col-goldBg'),closingText:cv('col-closingText'),btnBg:cv('col-btnBg'),btnText:cv('col-btnText')}};
@@ -917,6 +1019,7 @@ function applySettings(s){
   if(!s)return;
   gradDir=s.gradDir!==undefined?s.gradDir:true;
   photoBorderOn=s.photoBorderOn!==undefined?s.photoBorderOn:true;
+  photoShadowOn=s.photoShadowOn!==undefined?s.photoShadowOn:true;
   // Always default to 1 Line — never restore 2-line mode from saved settings
   forceTwoLines=false;
   line1WordCount=s.line1WordCount!==undefined?s.line1WordCount:-1;
@@ -927,6 +1030,8 @@ function applySettings(s){
   document.getElementById('titleTwo').classList.toggle('active',forceTwoLines);
   var t=document.getElementById('tog-photoBorder'),tl=document.getElementById('tog-photoBorder-lbl');
   t.classList.toggle('on',photoBorderOn);if(tl)tl.textContent=photoBorderOn?'On':'Off';
+  var ts=document.getElementById('tog-photoShadow'),tsl=document.getElementById('tog-photoShadow-lbl');
+  if(ts)ts.classList.toggle('on',photoShadowOn);if(tsl)tsl.textContent=photoShadowOn?'On':'Off';
   if(s.colors)Object.keys(s.colors).forEach(function(k){
     var cp=document.getElementById('col-'+k),hi=document.getElementById('hex-'+k);
     if(cp)cp.value=s.colors[k];if(hi)hi.value=s.colors[k];
@@ -1047,7 +1152,9 @@ function drawBanner(canvas){
   var filled=[];for(var pi=0;pi<4;pi++){if(photoImgs[pi])filled.push(pi);}
   if(filled.length){
     var n=filled.length;
-    var natW=filled.map(function(i){return(photoImgs[i].width/photoImgs[i].height)*PHOTO_H;});
+    var shadowMargin=photoShadowOn?20:0;
+    var effPhotoH=PHOTO_H-shadowMargin;
+    var natW=filled.map(function(i){return(photoImgs[i].width/photoImgs[i].height)*effPhotoH;});
     var totalNat=natW.reduce(function(a,b){return a+b;},0);
     var maxW=PHOTO_W-MIN_GAP*(n-1),sc=totalNat>maxW?maxW/totalNat:1;
     var drawW=natW.map(function(w){return w*sc;});
@@ -1058,11 +1165,19 @@ function drawBanner(canvas){
     for(var fi=0;fi<n;fi++){
       var idx=filled[fi],photo=photoImgs[idx],isTransp=photoTransparent[idx];
       var dW=drawW[fi],dH=dW/(photo.width/photo.height),dY;
-      if(dH>PHOTO_H){dH=PHOTO_H;dW=dH*(photo.width/photo.height);}
+      if(dH>effPhotoH){dH=effPhotoH;dW=dH*(photo.width/photo.height);}
       dY=PHOTO_Y+Math.floor((PHOTO_H-dH)/2);
+      if(photoShadowOn){
+        ctx.save();
+        ctx.shadowColor='rgba(0,0,0,0.4)';
+        ctx.shadowBlur=14;
+        ctx.shadowOffsetX=0;
+        ctx.shadowOffsetY=7;
+      }
       ctx.filter=photoBrightness[idx]!==100?'brightness('+(photoBrightness[idx]/100)+')':'none';
       ctx.drawImage(photo,curX,dY,dW,dH);
       ctx.filter='none';
+      if(photoShadowOn)ctx.restore();
       if(!isTransp&&photoBorderOn){ctx.strokeStyle=cv('col-photoBorder');ctx.lineWidth=1;ctx.strokeRect(curX,dY,dW,dH);}
       curX+=dW+gap;
     }
@@ -1146,9 +1261,10 @@ function exportBanner(){
 function resetAll(){
   templateImg=null;logoImg=null;tmplLoaded=false;logoLoaded=false;
   step2Checked=false;step5Checked=false;
-  photoImgs=[null,null,null,null];photoTransparent=[false,false,false,false];photoBrightness=[100,100,100,100];
+  photoImgs=[null,null,null,null];photoOriginalImgs=[null,null,null,null];photoOriginalSrc=[null,null,null,null];
+  photoBgRemoved=[false,false,false,false];photoTransparent=[false,false,false,false];photoBrightness=[100,100,100,100];
   logoPalette=[];brandOverride=null;currentPresetName=null;
-  gradDir=true;photoBorderOn=true;showWatermark=false;
+  gradDir=true;photoBorderOn=true;photoShadowOn=true;showWatermark=false;
   exportHistory=[];document.getElementById('historySection').style.display='none';
   makeUploadArea(document.getElementById('tmplArea'),'📄','Drop or Upload Template','PNG or JPG · banner layout','image/png,image/jpeg',onTmplFile);
   makeUploadArea(document.getElementById('logoArea'),'🏷️','Drop or Upload Auctioneer Logo','PNG recommended · filename = auctioneer name','image/png,image/jpeg,image/gif,image/webp',onLogoFile);
@@ -1160,6 +1276,7 @@ function resetAll(){
   document.getElementById('brandHex').value='#0057FF';document.getElementById('brandPicker').value='#0057FF';
   document.getElementById('dirLtr').classList.add('active');document.getElementById('dirRtl').classList.remove('active');
   document.getElementById('tog-photoBorder').classList.add('on');document.getElementById('tog-photoBorder-lbl').textContent='On';
+  document.getElementById('tog-photoShadow').classList.add('on');document.getElementById('tog-photoShadow-lbl').textContent='On';
   document.getElementById('tog-watermark').classList.remove('on');
   document.getElementById('copyTextRow').style.display='none';
   // Reset badge 2 and 5
@@ -1245,6 +1362,11 @@ function init(){
   document.getElementById('tog-photoBorder').addEventListener('click',function(){
     showUndo('Photo border toggled');photoBorderOn=!photoBorderOn;this.classList.toggle('on',photoBorderOn);
     document.getElementById('tog-photoBorder-lbl').textContent=photoBorderOn?'On':'Off';renderPreview();
+  });
+
+  document.getElementById('tog-photoShadow').addEventListener('click',function(){
+    showUndo('Drop shadow toggled');photoShadowOn=!photoShadowOn;this.classList.toggle('on',photoShadowOn);
+    document.getElementById('tog-photoShadow-lbl').textContent=photoShadowOn?'On':'Off';renderPreview();
   });
 
   document.getElementById('tog-watermark').addEventListener('click',function(){
