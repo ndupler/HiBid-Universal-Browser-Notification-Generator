@@ -119,11 +119,37 @@ input[type=color].cp{width:34px;height:28px;border:1.5px solid var(--border2);bo
 .clr-btn:hover{background:rgba(224,82,82,.85);}
 .drop-zone.filled .clr-btn{display:flex;}
 .drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;z-index:1;}
-.trans-overlay{position:absolute;bottom:5px;right:5px;z-index:3;background:rgba(11,15,26,.75);border:1px solid rgba(255,255,255,.15);color:var(--text-dim);border-radius:4px;padding:2px 6px;font-size:8px;font-weight:700;cursor:pointer;display:none;line-height:1.4;}
-.trans-overlay:hover{border-color:var(--accent);color:var(--accent);}
-.trans-overlay.active{background:rgba(79,168,204,.2);border-color:var(--accent);color:var(--accent);}
-.trans-overlay.processing{background:rgba(240,160,48,.2);border-color:#f0a030;color:#f0a030;cursor:wait;}
-.drop-zone.filled .trans-overlay{display:block;}
+.slot-actions{display:none;gap:6px;margin-top:6px;}
+.slot-actions.visible{display:flex;}
+.slot-action-btn{flex:1;padding:8px 6px;border-radius:7px;border:1.5px solid var(--border2);background:var(--surface2);color:var(--text);font-size:11px;font-weight:800;cursor:pointer;text-align:center;line-height:1.25;transition:all .15s;}
+.slot-action-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-glow);}
+.slot-action-btn.active{background:rgba(79,168,204,.2);border-color:var(--accent);color:var(--accent);}
+.slot-action-btn.processing{background:rgba(240,160,48,.2);border-color:#f0a030;color:#f0a030;cursor:wait;}
+
+/* ── Crop modal ── */
+.crop-modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:2000;align-items:center;justify-content:center;}
+.crop-modal-backdrop.show{display:flex;}
+.crop-modal{background:var(--surface);border:1.5px solid var(--border2);border-radius:12px;padding:16px;width:min(620px,92vw);display:flex;flex-direction:column;gap:12px;}
+.crop-modal-hdr{display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:800;color:var(--text);}
+.crop-modal-close{background:transparent;border:none;color:var(--text-dim);font-size:16px;cursor:pointer;line-height:1;}
+.crop-modal-close:hover{color:var(--text);}
+.crop-modal-hint{font-size:10px;color:var(--text-dim);}
+.crop-stage{position:relative;width:100%;display:flex;align-items:center;justify-content:center;background:repeating-conic-gradient(#111827 0% 25%,#0d1420 0% 50%) 0 0/16px 16px;border-radius:8px;overflow:hidden;padding:0;}
+.crop-stage img{display:block;max-width:100%;max-height:56vh;user-select:none;pointer-events:none;}
+.crop-rect{position:absolute;border:2px solid var(--accent);box-shadow:0 0 0 9999px rgba(0,0,0,.62);cursor:move;box-sizing:border-box;}
+.crop-handle{position:absolute;width:14px;height:14px;background:var(--accent);border:1.5px solid #fff;border-radius:3px;}
+.crop-handle.tl{top:-7px;left:-7px;cursor:nwse-resize;}
+.crop-handle.tr{top:-7px;right:-7px;cursor:nesw-resize;}
+.crop-handle.bl{bottom:-7px;left:-7px;cursor:nesw-resize;}
+.crop-handle.br{bottom:-7px;right:-7px;cursor:nwse-resize;}
+.crop-modal-actions{display:flex;justify-content:flex-end;gap:8px;}
+.erase-toolbar{display:flex;flex-wrap:wrap;gap:14px;align-items:center;}
+.erase-slider-row{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--text-dim);font-weight:600;}
+.erase-slider-row input[type=range]{width:110px;accent-color:var(--accent);cursor:pointer;}
+#eraseCanvas{display:block;max-width:100%;max-height:56vh;cursor:crosshair;}
+.brush-cursor{position:absolute;border:2px solid var(--accent);border-radius:50%;pointer-events:none;transform:translate(-50%,-50%);display:none;box-shadow:0 0 0 1px rgba(0,0,0,.6);z-index:5;}
+.brush-cursor.erase-mode{border-color:var(--red);}
+.brush-cursor.restore-mode{border-color:var(--accent);}
 
 /* ── Brightness controls ── */
 .bright-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
@@ -438,6 +464,10 @@ canvas{border-radius:5px;display:block;max-width:100%;max-height:100%;width:auto
             <div class="grad-sub-title">Image Brightness</div>
             <div id="brightnessControls"></div>
           </div>
+          <div class="grad-sub">
+            <div class="grad-sub-title">Photo Zoom</div>
+            <div id="zoomControls"></div>
+          </div>
         </div>
 
         <div class="s4-section">
@@ -538,6 +568,66 @@ canvas{border-radius:5px;display:block;max-width:100%;max-height:100%;width:auto
 </div>
 <canvas id="exportCanvas" style="display:none;"></canvas>
 
+<div class="crop-modal-backdrop" id="cropModalBackdrop">
+  <div class="crop-modal">
+    <div class="crop-modal-hdr">
+      <span id="cropModalTitle">Crop Photo</span>
+      <button class="crop-modal-close" id="cropModalClose">✕</button>
+    </div>
+    <div class="crop-modal-hint">Drag the box to reposition · drag a corner to resize</div>
+    <div class="crop-stage" id="cropStage">
+      <img id="cropImg" draggable="false" alt="">
+      <div class="crop-rect" id="cropRect">
+        <div class="crop-handle tl" data-corner="tl"></div>
+        <div class="crop-handle tr" data-corner="tr"></div>
+        <div class="crop-handle bl" data-corner="bl"></div>
+        <div class="crop-handle br" data-corner="br"></div>
+      </div>
+    </div>
+    <div class="crop-modal-actions">
+      <button class="btn btn-ghost" id="cropResetBtn">↺ Reset</button>
+      <button class="btn btn-ghost" id="cropCancelBtn">Cancel</button>
+      <button class="btn btn-save-preset" id="cropApplyBtn">✓ Apply Crop</button>
+    </div>
+  </div>
+</div>
+
+<div class="crop-modal-backdrop" id="eraseModalBackdrop">
+  <div class="crop-modal">
+    <div class="crop-modal-hdr">
+      <span id="eraseModalTitle">Erase Background</span>
+      <button class="crop-modal-close" id="eraseModalClose">✕</button>
+    </div>
+    <div class="crop-modal-hint">Magic Wand: click a color region to remove it · Brushes: click and drag</div>
+    <div class="erase-toolbar">
+      <div class="seg-toggle" id="eraseToolSeg">
+        <button class="seg-btn active" id="toolWand" data-tool="wand">🪄 Magic Wand</button>
+        <button class="seg-btn" id="toolErase" data-tool="erase">🧽 Erase Brush</button>
+        <button class="seg-btn" id="toolRestore" data-tool="restore">🖌 Restore Brush</button>
+      </div>
+      <div class="erase-slider-row" id="wandToleranceRow">
+        <span>Tolerance</span>
+        <input type="range" id="wandTolerance" min="10" max="120" value="40">
+        <span id="wandToleranceVal">40</span>
+      </div>
+      <div class="erase-slider-row" id="brushSizeRow" style="display:none;">
+        <span>Brush Size</span>
+        <input type="range" id="brushSize" min="4" max="80" value="24">
+        <span id="brushSizeVal">24</span>
+      </div>
+    </div>
+    <div class="crop-stage" id="eraseStage">
+      <canvas id="eraseCanvas"></canvas>
+      <div class="brush-cursor" id="brushCursor"></div>
+    </div>
+    <div class="crop-modal-actions">
+      <button class="btn btn-ghost" id="eraseResetBtn">↺ Reset</button>
+      <button class="btn btn-ghost" id="eraseCancelBtn">Cancel</button>
+      <button class="btn btn-save-preset" id="eraseApplyBtn">✓ Apply</button>
+    </div>
+  </div>
+</div>
+
 <script>
 (function(){
 'use strict';
@@ -554,11 +644,15 @@ var PRESET_PREFIX='hibid:notify:';
 
 var templateImg=null,logoImg=null;
 var photoImgs=[null,null,null,null];
+var photoRawImg=[null,null,null,null];
+var photoRawSrc=[null,null,null,null];
+var photoCropRect=[null,null,null,null];
 var photoOriginalImgs=[null,null,null,null];
 var photoOriginalSrc=[null,null,null,null];
 var photoBgRemoved=[false,false,false,false];
 var photoTransparent=[false,false,false,false];
 var photoBrightness=[100,100,100,100];
+var photoZoom=[100,100,100,100];
 var logoPalette=[],brandOverride=null,currentPresetName=null;
 var gradDir=true,photoBorderOn=true,photoShadowOn=true,forceTwoLines=false,line1WordCount=-1;
 var showWatermark=false;
@@ -566,6 +660,7 @@ var exportHistory=[];
 var lastState=null,undoTimer=null;
 var tmplLoaded=false,logoLoaded=false;
 var step2Checked=false,step5Checked=false;
+var cropTargetIdx=null,cropRectState={x:0,y:0,w:0,h:0},cropImgNatural={w:0,h:0},cropDrag=null;
 
 var GRADIENTS=[
   ['#FF0000','#DC143C','#800000','#4A0000'],['#FFA500','#CC5500','#A0522D','#6B3A2A'],
@@ -619,74 +714,6 @@ function trimImage(img,cb){
   var out=document.createElement('canvas');out.width=maxX-minX+1;out.height=maxY-minY+1;
   out.getContext('2d').drawImage(c,minX,minY,out.width,out.height,0,0,out.width,out.height);
   var t=new Image();t.onload=function(){cb(t);};t.src=out.toDataURL();
-}
-
-// ── Auto background removal (edge-aware flood-fill from edges, no external services) ──
-function removeBackgroundClassical(img,cb){
-  var maxDim=900,scale=Math.min(1,maxDim/Math.max(img.width,img.height));
-  var w=Math.max(1,Math.round(img.width*scale)),h=Math.max(1,Math.round(img.height*scale));
-  var c=document.createElement('canvas');c.width=w;c.height=h;
-  var ctx=c.getContext('2d');ctx.drawImage(img,0,0,w,h);
-  var imgData=ctx.getImageData(0,0,w,h),data=imgData.data;
-
-  function px(x,y){var i=(y*w+x)*4;return[data[i],data[i+1],data[i+2]];}
-
-  // Grayscale + Sobel edge-magnitude map, used to stop the fill at strong boundaries
-  var gray=new Float32Array(w*h);
-  for(var p=0;p<w*h;p++){var gi=p*4;gray[p]=0.299*data[gi]+0.587*data[gi+1]+0.114*data[gi+2];}
-  var edge=new Float32Array(w*h);
-  for(var ey=1;ey<h-1;ey++){
-    for(var ex=1;ex<w-1;ex++){
-      var eidx=ey*w+ex;
-      var gx=gray[eidx-1-w]-gray[eidx+1-w]+2*gray[eidx-1]-2*gray[eidx+1]+gray[eidx-1+w]-gray[eidx+1+w];
-      var gy=gray[eidx-w-1]+2*gray[eidx-w]+gray[eidx-w+1]-gray[eidx+w-1]-2*gray[eidx+w]-gray[eidx+w+1];
-      edge[eidx]=Math.sqrt(gx*gx+gy*gy);
-    }
-  }
-
-  // Robust background reference: median color sampled along the full border ring
-  // (median resists a single corner/edge sample landing on the subject)
-  var rs=[],gs=[],bs=[];
-  var stepX=Math.max(1,Math.floor(w/80)),stepY=Math.max(1,Math.floor(h/80));
-  for(var x=0;x<w;x+=stepX){var c1=px(x,0),c2=px(x,h-1);rs.push(c1[0],c2[0]);gs.push(c1[1],c2[1]);bs.push(c1[2],c2[2]);}
-  for(var y=0;y<h;y+=stepY){var c3=px(0,y),c4=px(w-1,y);rs.push(c3[0],c4[0]);gs.push(c3[1],c4[1]);bs.push(c3[2],c4[2]);}
-  rs.sort(function(a,b){return a-b;});gs.sort(function(a,b){return a-b;});bs.sort(function(a,b){return a-b;});
-  var mid=Math.floor(rs.length/2);
-  var ref=[rs[mid],gs[mid],bs[mid]];
-
-  var tolerance=52,edgeThreshold=42;
-  function colorMatch(i){
-    var dr=data[i]-ref[0],dg=data[i+1]-ref[1],db=data[i+2]-ref[2];
-    return Math.sqrt(dr*dr+dg*dg+db*db)<tolerance;
-  }
-
-  var visited=new Uint8Array(w*h),stack=[];
-  function seed(x,y){
-    var idx=y*w+x;if(visited[idx])return;
-    var i=idx*4;
-    if(colorMatch(i)){visited[idx]=1;stack.push(idx);}
-  }
-  for(var sx=0;sx<w;sx++){seed(sx,0);seed(sx,h-1);}
-  for(var sy=0;sy<h;sy++){seed(0,sy);seed(w-1,sy);}
-
-  while(stack.length){
-    var idx=stack.pop(),cx=idx%w,cy=(idx/w)|0,i=idx*4;
-    data[i+3]=0;
-    var nb=[[cx-1,cy],[cx+1,cy],[cx,cy-1],[cx,cy+1]];
-    for(var n=0;n<4;n++){
-      var nx=nb[n][0],ny=nb[n][1];
-      if(nx<0||ny<0||nx>=w||ny>=h)continue;
-      var nidx=ny*w+nx;if(visited[nidx])continue;
-      if(edge[nidx]>edgeThreshold)continue; // don't cross strong boundaries — keeps the subject's outline crisp
-      var ni=nidx*4;
-      if(colorMatch(ni)){visited[nidx]=1;stack.push(nidx);}
-    }
-  }
-
-  ctx.putImageData(imgData,0,0);
-  var result=new Image();
-  result.onload=function(){cb(result);};
-  result.src=c.toDataURL();
 }
 
 function getActivePalette(){return brandOverride?[brandOverride]:logoPalette;}
@@ -773,6 +800,31 @@ function updateBrightnessControls(){
     })(i);
   }
   if(!any){wrap.innerHTML='<div class="bright-empty">Add lot photos to adjust brightness</div>';}
+}
+
+// ── Zoom controls (per loaded photo) ──
+function updateZoomControls(){
+  var wrap=document.getElementById('zoomControls');if(!wrap)return;
+  wrap.innerHTML='';
+  var any=false;
+  for(var i=0;i<4;i++){
+    if(!photoImgs[i])continue;
+    any=true;
+    (function(idx){
+      var row=document.createElement('div');row.className='bright-row';
+      var lbl=document.createElement('span');lbl.className='bright-lbl';lbl.textContent='Photo '+(idx+1);
+      var range=document.createElement('input');range.type='range';range.min='100';range.max='250';range.step='5';range.value=photoZoom[idx];
+      var val=document.createElement('span');val.className='bright-val';val.textContent=photoZoom[idx]+'%';
+      range.addEventListener('input',function(){
+        photoZoom[idx]=parseInt(range.value,10);
+        val.textContent=photoZoom[idx]+'%';
+        renderPreview();
+      });
+      row.appendChild(lbl);row.appendChild(range);row.appendChild(val);
+      wrap.appendChild(row);
+    })(i);
+  }
+  if(!any){wrap.innerHTML='<div class="bright-empty">Add lot photos to adjust zoom</div>';}
 }
 
 // ── Two-line split ──
@@ -943,15 +995,22 @@ function buildPhotoSlots(){
     var thumb=document.createElement('img');thumb.id='thumb'+idx;thumb.style.display='none';
     var clrBtn=document.createElement('button');clrBtn.className='clr-btn';clrBtn.textContent='✕';
     clrBtn.addEventListener('click',function(e){e.stopPropagation();clearSlot(idx);});
-    var transBtn=document.createElement('button');transBtn.className='trans-overlay';transBtn.id='transTog'+idx;transBtn.title='Remove Background';transBtn.textContent='✂ BG';
-    transBtn.addEventListener('click',function(e){e.stopPropagation();toggleBgRemoval(idx);});
     var fileInp=document.createElement('input');fileInp.type='file';fileInp.accept='image/*';
     fileInp.addEventListener('change',function(){if(this.files[0])handlePhoto(this.files[0],idx);});
-    zone.appendChild(icon);zone.appendChild(lbl);zone.appendChild(badge);zone.appendChild(thumb);zone.appendChild(clrBtn);zone.appendChild(transBtn);zone.appendChild(fileInp);
+    zone.appendChild(icon);zone.appendChild(lbl);zone.appendChild(badge);zone.appendChild(thumb);zone.appendChild(clrBtn);zone.appendChild(fileInp);
     zone.addEventListener('dragover',function(e){e.preventDefault();zone.classList.add('dragover');});
     zone.addEventListener('dragleave',function(){zone.classList.remove('dragover');});
     zone.addEventListener('drop',function(e){e.preventDefault();zone.classList.remove('dragover');if(e.dataTransfer.files[0])handlePhoto(e.dataTransfer.files[0],idx);});
-    wrap.appendChild(zone);grid.appendChild(wrap);
+    wrap.appendChild(zone);
+
+    var actions=document.createElement('div');actions.className='slot-actions';actions.id='actions'+idx;
+    var cropBtn=document.createElement('button');cropBtn.className='slot-action-btn';cropBtn.id='cropBtn'+idx;cropBtn.type='button';cropBtn.innerHTML='⛶ Crop';
+    cropBtn.addEventListener('click',function(){openCropModal(idx);});
+    var transBtn=document.createElement('button');transBtn.className='slot-action-btn';transBtn.id='transTog'+idx;transBtn.type='button';transBtn.title='Erase Background';transBtn.innerHTML='🧽 Erase Background';
+    transBtn.addEventListener('click',function(){openEraseModal(idx);});
+    actions.appendChild(cropBtn);actions.appendChild(transBtn);
+    wrap.appendChild(actions);
+    grid.appendChild(wrap);
   })(i);}
 }
 function handlePhoto(file,idx){
@@ -961,51 +1020,198 @@ function handlePhoto(file,idx){
     var img=new Image();
     img.onload=function(){
       photoImgs[idx]=img;
+      photoRawImg[idx]=img;
+      photoRawSrc[idx]=e.target.result;
+      photoCropRect[idx]=null;
       photoOriginalImgs[idx]=img;
       photoOriginalSrc[idx]=e.target.result;
       photoBgRemoved[idx]=false;photoTransparent[idx]=false;
-      photoBrightness[idx]=100;
+      photoBrightness[idx]=100;photoZoom[idx]=100;
       var thumb=document.getElementById('thumb'+idx);thumb.src=e.target.result;thumb.style.display='block';
       document.getElementById('zone'+idx).classList.add('filled');
-      var tb=document.getElementById('transTog'+idx);if(tb){tb.textContent='✂ BG';tb.classList.remove('active','processing');tb.title='Remove Background';}
-      setStatus('Photo '+(idx+1)+' loaded.',true);updateBadges();updateBrightnessControls();renderPreview();
+      var actionsEl=document.getElementById('actions'+idx);if(actionsEl)actionsEl.classList.add('visible');
+      var tb=document.getElementById('transTog'+idx);if(tb){tb.textContent='🧽 Erase Background';tb.classList.remove('active','processing');tb.title='Erase Background';}
+      setStatus('Photo '+(idx+1)+' loaded.',true);updateBadges();updateBrightnessControls();updateZoomControls();renderPreview();
       checkAllPhotos();
     };img.src=e.target.result;
   };reader.readAsDataURL(file);
 }
 function clearSlot(idx){
   photoImgs[idx]=null;photoOriginalImgs[idx]=null;photoOriginalSrc[idx]=null;
-  photoBgRemoved[idx]=false;photoTransparent[idx]=false;photoBrightness[idx]=100;
+  photoRawImg[idx]=null;photoRawSrc[idx]=null;photoCropRect[idx]=null;
+  photoBgRemoved[idx]=false;photoTransparent[idx]=false;photoBrightness[idx]=100;photoZoom[idx]=100;
   var t=document.getElementById('thumb'+idx);t.src='';t.style.display='none';
   document.getElementById('zone'+idx).classList.remove('filled');
+  var actionsEl2=document.getElementById('actions'+idx);if(actionsEl2)actionsEl2.classList.remove('visible');
   document.getElementById('zone'+idx).querySelector('input[type=file]').value='';
-  var tb=document.getElementById('transTog'+idx);if(tb){tb.textContent='✂ BG';tb.classList.remove('active','processing');tb.title='Remove Background';}
-  updateBadges();updateBrightnessControls();renderPreview();
+  var tb=document.getElementById('transTog'+idx);if(tb){tb.textContent='🧽 Erase Background';tb.classList.remove('active','processing');tb.title='Erase Background';}
+  var cb=document.getElementById('cropBtn'+idx);if(cb){cb.textContent='⛶ Crop';cb.classList.remove('active');}
+  updateBadges();updateBrightnessControls();updateZoomControls();renderPreview();
 }
-function toggleBgRemoval(idx){
+
+
+// ── Background Eraser (manual, user-directed — no auto-detection at all) ──
+// Two tools: Magic Wand (click a spot, removes the connected region matching that
+// color, within an adjustable tolerance) and a manual Erase/Restore brush for touch-ups.
+// This works on any background because the user chooses exactly what to remove.
+var eraseTargetIdx=null,eraseTool='wand',eraseDrawing=false;
+var eraseWorkW=0,eraseWorkH=0,eraseWorkData=null,eraseOrigData=null;
+
+function openEraseModal(idx){
   if(!photoOriginalImgs[idx])return;
-  var btn=document.getElementById('transTog'+idx);
-  if(photoBgRemoved[idx]){
-    // Restore original
-    photoImgs[idx]=photoOriginalImgs[idx];
+  eraseTargetIdx=idx;
+  document.getElementById('eraseModalTitle').textContent='Erase Background — Photo '+(idx+1);
+  var srcImg=photoImgs[idx]||photoOriginalImgs[idx];
+  var maxDim=800,scale=Math.min(1,maxDim/Math.max(srcImg.width,srcImg.height));
+  eraseWorkW=Math.max(1,Math.round(srcImg.width*scale));
+  eraseWorkH=Math.max(1,Math.round(srcImg.height*scale));
+
+  var tmp=document.createElement('canvas');tmp.width=eraseWorkW;tmp.height=eraseWorkH;
+  tmp.getContext('2d').drawImage(srcImg,0,0,eraseWorkW,eraseWorkH);
+  eraseWorkData=tmp.getContext('2d').getImageData(0,0,eraseWorkW,eraseWorkH);
+
+  var tmp2=document.createElement('canvas');tmp2.width=eraseWorkW;tmp2.height=eraseWorkH;
+  tmp2.getContext('2d').drawImage(photoOriginalImgs[idx],0,0,eraseWorkW,eraseWorkH);
+  eraseOrigData=tmp2.getContext('2d').getImageData(0,0,eraseWorkW,eraseWorkH);
+
+  var canvas=document.getElementById('eraseCanvas');
+  canvas.width=eraseWorkW;canvas.height=eraseWorkH;
+  redrawEraseCanvas();
+  document.getElementById('eraseModalBackdrop').classList.add('show');
+}
+function redrawEraseCanvas(){
+  document.getElementById('eraseCanvas').getContext('2d').putImageData(eraseWorkData,0,0);
+}
+function closeEraseModal(){
+  document.getElementById('eraseModalBackdrop').classList.remove('show');
+  eraseTargetIdx=null;eraseDrawing=false;
+}
+function eraseCanvasCoords(e){
+  var canvas=document.getElementById('eraseCanvas'),rect=canvas.getBoundingClientRect();
+  var scaleX=canvas.width/rect.width,scaleY=canvas.height/rect.height;
+  var x=Math.floor((e.clientX-rect.left)*scaleX),y=Math.floor((e.clientY-rect.top)*scaleY);
+  return{x:clampNum(x,0,canvas.width-1),y:clampNum(y,0,canvas.height-1)};
+}
+function magicWandAt(x0,y0,tolerance){
+  var w=eraseWorkW,h=eraseWorkH,data=eraseWorkData.data;
+  var idx0=y0*w+x0,i0=idx0*4;
+  if(data[i0+3]===0)return;
+  var baseR=data[i0],baseG=data[i0+1],baseB=data[i0+2];
+  var visited=new Uint8Array(w*h),stack=[idx0];visited[idx0]=1;
+  while(stack.length){
+    var idx=stack.pop(),i=idx*4;
+    if(data[i+3]===0)continue;
+    var dr=data[i]-baseR,dg=data[i+1]-baseG,db=data[i+2]-baseB;
+    if(Math.sqrt(dr*dr+dg*dg+db*db)>=tolerance)continue;
+    data[i+3]=0;
+    var cx=idx%w,cy=(idx/w)|0;
+    var nb=[[cx-1,cy],[cx+1,cy],[cx,cy-1],[cx,cy+1]];
+    for(var n=0;n<4;n++){
+      var nx=nb[n][0],ny=nb[n][1];
+      if(nx<0||ny<0||nx>=w||ny>=h)continue;
+      var nidx=ny*w+nx;
+      if(!visited[nidx]){visited[nidx]=1;stack.push(nidx);}
+    }
+  }
+}
+function brushAt(x,y,radius,erase){
+  var w=eraseWorkW,h=eraseWorkH,data=eraseWorkData.data,orig=eraseOrigData.data,r2=radius*radius;
+  var minX=clampNum(x-radius,0,w-1),maxX=clampNum(x+radius,0,w-1);
+  var minY=clampNum(y-radius,0,h-1),maxY=clampNum(y+radius,0,h-1);
+  for(var yy=minY;yy<=maxY;yy++){
+    for(var xx=minX;xx<=maxX;xx++){
+      var dx=xx-x,dy=yy-y;
+      if(dx*dx+dy*dy>r2)continue;
+      var i=(yy*w+xx)*4;
+      if(erase){data[i+3]=0;}
+      else{data[i]=orig[i];data[i+1]=orig[i+1];data[i+2]=orig[i+2];data[i+3]=orig[i+3];}
+    }
+  }
+}
+
+var eraseLastMouseEvent=null;
+function updateBrushCursor(e){
+  var cursor=document.getElementById('brushCursor');
+  if(!cursor)return;
+  if(!e||eraseTool==='wand'){cursor.style.display='none';return;}
+  var canvas=document.getElementById('eraseCanvas'),stage=document.getElementById('eraseStage');
+  var canvasRect=canvas.getBoundingClientRect(),stageRect=stage.getBoundingClientRect();
+  var scale=canvasRect.width/canvas.width;
+  var radius=parseInt(document.getElementById('brushSize').value,10);
+  var diameterCss=radius*2*scale;
+  var localX=e.clientX-stageRect.left,localY=e.clientY-stageRect.top;
+  cursor.style.width=diameterCss+'px';
+  cursor.style.height=diameterCss+'px';
+  cursor.style.left=localX+'px';
+  cursor.style.top=localY+'px';
+  cursor.classList.toggle('erase-mode',eraseTool==='erase');
+  cursor.classList.toggle('restore-mode',eraseTool==='restore');
+  cursor.style.display='block';
+}
+
+// ── Crop modal ──
+function clampNum(v,lo,hi){return Math.max(lo,Math.min(hi,v));}
+function positionCropRectEl(){
+  var el=document.getElementById('cropRect');
+  el.style.left=cropRectState.x+'px';el.style.top=cropRectState.y+'px';
+  el.style.width=cropRectState.w+'px';el.style.height=cropRectState.h+'px';
+}
+function openCropModal(idx){
+  if(!photoRawImg[idx])return;
+  cropTargetIdx=idx;
+  var img=document.getElementById('cropImg');
+  document.getElementById('cropModalTitle').textContent='Crop Photo '+(idx+1);
+  img.onload=function(){
+    cropImgNatural={w:img.naturalWidth,h:img.naturalHeight};
+    requestAnimationFrame(function(){
+      var dispW=img.clientWidth,dispH=img.clientHeight;
+      var stored=photoCropRect[idx];
+      if(stored){
+        var sx=dispW/cropImgNatural.w,sy=dispH/cropImgNatural.h;
+        cropRectState={x:stored.x*sx,y:stored.y*sy,w:stored.w*sx,h:stored.h*sy};
+      }else{
+        cropRectState={x:0,y:0,w:dispW,h:dispH};
+      }
+      positionCropRectEl();
+    });
+  };
+  img.src=photoRawSrc[idx];
+  document.getElementById('cropModalBackdrop').classList.add('show');
+}
+function closeCropModal(){
+  document.getElementById('cropModalBackdrop').classList.remove('show');
+  cropTargetIdx=null;cropDrag=null;
+}
+function applyCropToPhoto(idx){
+  var raw=photoRawImg[idx],rect=photoCropRect[idx];
+  if(!raw)return;
+  var cb=document.getElementById('cropBtn'+idx);
+  if(!rect){
+    photoOriginalImgs[idx]=raw;photoOriginalSrc[idx]=photoRawSrc[idx];
     photoBgRemoved[idx]=false;photoTransparent[idx]=false;
-    var thumb=document.getElementById('thumb'+idx);if(thumb)thumb.src=photoOriginalSrc[idx];
-    if(btn){btn.textContent='✂ BG';btn.classList.remove('active');btn.title='Remove Background';}
-    setStatus('Background restored on photo '+(idx+1)+'.',true);
+    photoImgs[idx]=raw;
+    var thumb0=document.getElementById('thumb'+idx);if(thumb0)thumb0.src=photoRawSrc[idx];
+    var tb0=document.getElementById('transTog'+idx);if(tb0){tb0.textContent='🧽 Erase Background';tb0.classList.remove('active');tb0.title='Erase Background';}
+    if(cb){cb.classList.remove('active');cb.innerHTML='⛶ Crop';}
+    setStatus('Crop reset on photo '+(idx+1)+'.',true);
     renderPreview();
     return;
   }
-  if(btn){btn.classList.add('processing');btn.textContent='…';btn.title='Removing background…';}
-  setStatus('Removing background on photo '+(idx+1)+'…',true);
-  setTimeout(function(){
-    removeBackgroundClassical(photoOriginalImgs[idx],function(result){
-      photoImgs[idx]=result;photoBgRemoved[idx]=true;photoTransparent[idx]=true;
-      var thumb=document.getElementById('thumb'+idx);if(thumb)thumb.src=result.src;
-      if(btn){btn.classList.remove('processing');btn.classList.add('active');btn.textContent='↺ Undo';btn.title='Restore Original';}
-      setStatus('Background removed on photo '+(idx+1)+'.',true);
-      renderPreview();
-    });
-  },20);
+  var c=document.createElement('canvas');c.width=rect.w;c.height=rect.h;
+  c.getContext('2d').drawImage(raw,rect.x,rect.y,rect.w,rect.h,0,0,rect.w,rect.h);
+  var dataUrl=c.toDataURL();
+  var cropped=new Image();
+  cropped.onload=function(){
+    photoOriginalImgs[idx]=cropped;photoOriginalSrc[idx]=dataUrl;
+    photoBgRemoved[idx]=false;photoTransparent[idx]=false;
+    photoImgs[idx]=cropped;
+    var thumb=document.getElementById('thumb'+idx);if(thumb)thumb.src=dataUrl;
+    var tb=document.getElementById('transTog'+idx);if(tb){tb.textContent='🧽 Erase Background';tb.classList.remove('active');tb.title='Erase Background';}
+    if(cb){cb.classList.add('active');cb.innerHTML='⛶ Edit Crop';}
+    setStatus('Photo '+(idx+1)+' cropped.',true);
+    renderPreview();
+  };
+  cropped.src=dataUrl;
 }
 
 // ── Settings / Presets ──
@@ -1175,7 +1381,15 @@ function drawBanner(canvas){
         ctx.shadowOffsetY=7;
       }
       ctx.filter=photoBrightness[idx]!==100?'brightness('+(photoBrightness[idx]/100)+')':'none';
-      ctx.drawImage(photo,curX,dY,dW,dH);
+      var z=photoZoom[idx]||100;
+      if(z>100){
+        var cropFactor=100/z;
+        var srcW=photo.width*cropFactor,srcH=photo.height*cropFactor;
+        var srcX=(photo.width-srcW)/2,srcY=(photo.height-srcH)/2;
+        ctx.drawImage(photo,srcX,srcY,srcW,srcH,curX,dY,dW,dH);
+      }else{
+        ctx.drawImage(photo,curX,dY,dW,dH);
+      }
       ctx.filter='none';
       if(photoShadowOn)ctx.restore();
       if(!isTransp&&photoBorderOn){ctx.strokeStyle=cv('col-photoBorder');ctx.lineWidth=1;ctx.strokeRect(curX,dY,dW,dH);}
@@ -1259,10 +1473,12 @@ function exportBanner(){
 }
 
 function resetAll(){
+  closeCropModal();
   templateImg=null;logoImg=null;tmplLoaded=false;logoLoaded=false;
   step2Checked=false;step5Checked=false;
   photoImgs=[null,null,null,null];photoOriginalImgs=[null,null,null,null];photoOriginalSrc=[null,null,null,null];
-  photoBgRemoved=[false,false,false,false];photoTransparent=[false,false,false,false];photoBrightness=[100,100,100,100];
+  photoRawImg=[null,null,null,null];photoRawSrc=[null,null,null,null];photoCropRect=[null,null,null,null];
+  photoBgRemoved=[false,false,false,false];photoTransparent=[false,false,false,false];photoBrightness=[100,100,100,100];photoZoom=[100,100,100,100];
   logoPalette=[];brandOverride=null;currentPresetName=null;
   gradDir=true;photoBorderOn=true;photoShadowOn=true;showWatermark=false;
   exportHistory=[];document.getElementById('historySection').style.display='none';
@@ -1288,7 +1504,7 @@ function resetAll(){
     'col-btnText':'#FFFFFF','hex-btnText':'#FFFFFF'};
   Object.keys(defs).forEach(function(id){var el=document.getElementById(id);if(el)el.value=defs[id];});
   buildPhotoSlots();
-  updateBrightnessControls();
+  updateBrightnessControls();updateZoomControls();
   // Reset title lines to 1 Line default
   resetTitleLines();
   updateBadges();
@@ -1325,7 +1541,7 @@ function init(){
   makeUploadArea(document.getElementById('tmplArea'),'📄','Drop or Upload Template','PNG or JPG · banner layout','image/png,image/jpeg',onTmplFile);
   makeUploadArea(document.getElementById('logoArea'),'🏷️','Drop or Upload Auctioneer Logo','PNG recommended · filename = auctioneer name','image/png,image/jpeg,image/gif,image/webp',onLogoFile);
   buildPhotoSlots();
-  updateBrightnessControls();
+  updateBrightnessControls();updateZoomControls();
 
   var picker=document.getElementById('brandPicker'),hexInp=document.getElementById('brandHex');
   picker.addEventListener('input',function(){hexInp.value=picker.value;});
@@ -1396,6 +1612,139 @@ function init(){
   });
 
   document.addEventListener('keydown',function(e){if((e.metaKey||e.ctrlKey)&&e.key==='s'){e.preventDefault();exportBanner();}});
+
+  // ── Crop modal interactions ──
+  var cropRectEl=document.getElementById('cropRect');
+  cropRectEl.addEventListener('mousedown',function(e){
+    if(e.target.classList.contains('crop-handle'))return;
+    e.preventDefault();
+    cropDrag={mode:'move',startX:e.clientX,startY:e.clientY,orig:Object.assign({},cropRectState)};
+  });
+  document.querySelectorAll('.crop-handle').forEach(function(h){
+    h.addEventListener('mousedown',function(e){
+      e.stopPropagation();e.preventDefault();
+      cropDrag={mode:'resize',corner:h.getAttribute('data-corner'),startX:e.clientX,startY:e.clientY,orig:Object.assign({},cropRectState)};
+    });
+  });
+  document.addEventListener('mousemove',function(e){
+    if(!cropDrag)return;
+    var img=document.getElementById('cropImg');
+    var dispW=img.clientWidth,dispH=img.clientHeight;
+    var dx=e.clientX-cropDrag.startX,dy=e.clientY-cropDrag.startY,o=cropDrag.orig;
+    var minSize=24;
+    if(cropDrag.mode==='move'){
+      cropRectState={x:clampNum(o.x+dx,0,dispW-o.w),y:clampNum(o.y+dy,0,dispH-o.h),w:o.w,h:o.h};
+    }else{
+      var nx=o.x,ny=o.y,nw=o.w,nh=o.h,corner=cropDrag.corner;
+      if(corner==='tl'){nx=clampNum(o.x+dx,0,o.x+o.w-minSize);ny=clampNum(o.y+dy,0,o.y+o.h-minSize);nw=o.w-(nx-o.x);nh=o.h-(ny-o.y);}
+      else if(corner==='tr'){ny=clampNum(o.y+dy,0,o.y+o.h-minSize);nh=o.h-(ny-o.y);nw=clampNum(o.w+dx,minSize,dispW-o.x);}
+      else if(corner==='bl'){nx=clampNum(o.x+dx,0,o.x+o.w-minSize);nw=o.w-(nx-o.x);nh=clampNum(o.h+dy,minSize,dispH-o.y);}
+      else if(corner==='br'){nw=clampNum(o.w+dx,minSize,dispW-o.x);nh=clampNum(o.h+dy,minSize,dispH-o.y);}
+      cropRectState={x:nx,y:ny,w:nw,h:nh};
+    }
+    positionCropRectEl();
+  });
+  document.addEventListener('mouseup',function(){cropDrag=null;});
+
+  document.getElementById('cropResetBtn').addEventListener('click',function(){
+    var img=document.getElementById('cropImg');
+    cropRectState={x:0,y:0,w:img.clientWidth,h:img.clientHeight};
+    positionCropRectEl();
+  });
+  document.getElementById('cropCancelBtn').addEventListener('click',closeCropModal);
+  document.getElementById('cropModalClose').addEventListener('click',closeCropModal);
+  document.getElementById('cropModalBackdrop').addEventListener('click',function(e){
+    if(e.target===this)closeCropModal();
+  });
+  document.getElementById('cropApplyBtn').addEventListener('click',function(){
+    if(cropTargetIdx===null)return;
+    var idx=cropTargetIdx,img=document.getElementById('cropImg');
+    var dispW=img.clientWidth,dispH=img.clientHeight;
+    var scaleX=cropImgNatural.w/dispW,scaleY=cropImgNatural.h/dispH;
+    var rect={
+      x:Math.round(cropRectState.x*scaleX),y:Math.round(cropRectState.y*scaleY),
+      w:Math.max(1,Math.round(cropRectState.w*scaleX)),h:Math.max(1,Math.round(cropRectState.h*scaleY))
+    };
+    // Treat a near-full-image selection as "no crop"
+    if(rect.x<=2&&rect.y<=2&&rect.w>=cropImgNatural.w-4&&rect.h>=cropImgNatural.h-4){
+      photoCropRect[idx]=null;
+    }else{
+      photoCropRect[idx]=rect;
+    }
+    applyCropToPhoto(idx);
+    closeCropModal();
+  });
+
+  // ── Background Eraser modal interactions ──
+  document.querySelectorAll('#eraseToolSeg .seg-btn').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      eraseTool=btn.getAttribute('data-tool');
+      document.querySelectorAll('#eraseToolSeg .seg-btn').forEach(function(b){b.classList.remove('active');});
+      btn.classList.add('active');
+      document.getElementById('wandToleranceRow').style.display=(eraseTool==='wand')?'flex':'none';
+      document.getElementById('brushSizeRow').style.display=(eraseTool==='wand')?'none':'flex';
+      document.getElementById('eraseCanvas').style.cursor=(eraseTool==='wand')?'crosshair':'none';
+      updateBrushCursor(eraseLastMouseEvent);
+    });
+  });
+  document.getElementById('wandTolerance').addEventListener('input',function(){
+    document.getElementById('wandToleranceVal').textContent=this.value;
+  });
+  document.getElementById('brushSize').addEventListener('input',function(){
+    document.getElementById('brushSizeVal').textContent=this.value;
+    updateBrushCursor(eraseLastMouseEvent);
+  });
+
+  var eraseCanvasEl=document.getElementById('eraseCanvas');
+  eraseCanvasEl.addEventListener('mousedown',function(e){
+    eraseDrawing=true;
+    var pt=eraseCanvasCoords(e);
+    if(eraseTool==='wand'){
+      magicWandAt(pt.x,pt.y,parseInt(document.getElementById('wandTolerance').value,10));
+    }else{
+      brushAt(pt.x,pt.y,parseInt(document.getElementById('brushSize').value,10),eraseTool==='erase');
+    }
+    redrawEraseCanvas();
+  });
+  eraseCanvasEl.addEventListener('mousemove',function(e){
+    eraseLastMouseEvent=e;
+    updateBrushCursor(e);
+    if(!eraseDrawing||eraseTool==='wand')return;
+    var pt=eraseCanvasCoords(e);
+    brushAt(pt.x,pt.y,parseInt(document.getElementById('brushSize').value,10),eraseTool==='erase');
+    redrawEraseCanvas();
+  });
+  eraseCanvasEl.addEventListener('mouseleave',function(){
+    eraseLastMouseEvent=null;
+    document.getElementById('brushCursor').style.display='none';
+  });
+  document.addEventListener('mouseup',function(){eraseDrawing=false;});
+
+  document.getElementById('eraseResetBtn').addEventListener('click',function(){
+    eraseWorkData=new ImageData(new Uint8ClampedArray(eraseOrigData.data),eraseWorkW,eraseWorkH);
+    redrawEraseCanvas();
+  });
+  document.getElementById('eraseCancelBtn').addEventListener('click',closeEraseModal);
+  document.getElementById('eraseModalClose').addEventListener('click',closeEraseModal);
+  document.getElementById('eraseModalBackdrop').addEventListener('click',function(e){
+    if(e.target===this)closeEraseModal();
+  });
+  document.getElementById('eraseApplyBtn').addEventListener('click',function(){
+    if(eraseTargetIdx===null)return;
+    var idx=eraseTargetIdx;
+    var dataUrl=document.getElementById('eraseCanvas').toDataURL();
+    var result=new Image();
+    result.onload=function(){
+      photoImgs[idx]=result;photoBgRemoved[idx]=true;photoTransparent[idx]=true;
+      var thumb=document.getElementById('thumb'+idx);if(thumb)thumb.src=dataUrl;
+      var btn=document.getElementById('transTog'+idx);
+      if(btn){btn.classList.add('active');btn.innerHTML='🧽 Edit Erase';btn.title='Edit Erased Background';}
+      setStatus('Background erased on photo '+(idx+1)+'.',true);
+      closeEraseModal();
+      renderPreview();
+    };
+    result.src=dataUrl;
+  });
 
   // ── Ensure 1 Line is active on first load ──
   resetTitleLines();
